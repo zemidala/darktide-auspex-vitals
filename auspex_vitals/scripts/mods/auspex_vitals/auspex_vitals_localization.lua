@@ -87,8 +87,8 @@ return {
 		ru = "Периодический урон",
 	},
 	show_dots_description = {
-		en = "Burning, warpfire, bleeding and toxin with stack counts under the bar.",
-		ru = "Горение, варп-огонь, кровотечение и токсин с числом стаков под полосой.",
+		en = "Burning, warpfire, electrocution, bleeding and toxin under the bar, with stack counts where the effect stacks.",
+		ru = "Горение, варп-огонь, электрошок, кровотечение и токсин под полосой, с числом стаков, если эффект стакается.",
 	},
 	show_health_number = {
 		en = "Health number",

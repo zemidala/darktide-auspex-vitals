@@ -5,34 +5,50 @@ local mod = get_mod("auspex_vitals")
 
 local Status = {}
 
--- Порядок = приоритет показа. keyword — ключевое слово баффа, templates — шаблоны со стаками.
+-- Порядок = приоритет показа. keywords — ключевые слова баффа (эффект есть, если есть любое),
+-- templates — шаблоны со стаками (у электрошока стаков нет: только ключевые слова).
 -- Имена сверены с weapon_buff_templates.lua (игра 1.13.0).
 Status.DOTS = {
 	{
 		id = "warpfire",
-		keyword = "warpfire_burning",
+		keywords = { "warpfire_burning" },
 		templates = { "warp_fire" },
 		icon = "content/ui/textures/icons/buffs/hud/psyker/psyker_ranged_shots_soulblaze",
-		color = { 255, 90, 200, 255 },
+		color = { 255, 170, 110, 255 },
 	},
 	{
 		id = "burning",
-		keyword = "burning",
+		keywords = { "burning" },
 		templates = { "flamer_assault", "phosphor_burn" },
 		icon = "content/ui/textures/icons/buffs/hud/states_fire_buff_hud",
 		color = { 255, 255, 140, 30 },
 	},
 	{
+		-- электрошок (Скитарий, дуговые гранаты, шоковые молоты, цепная молния): не стакается
+		id = "electrocuted",
+		keywords = {
+			"electrocuted",
+			"electrocuted_arc",
+			"electrocuted_arc_ability",
+			"electrocuted_arc_grenade",
+			"electrocuted_chain_lightning",
+			"electrocuted_shock_mine",
+		},
+		templates = {},
+		icon = "content/ui/textures/icons/buffs/hud/states_electric_buff_hud",
+		color = { 255, 120, 200, 255 },
+	},
+	{
 		id = "bleeding",
-		keyword = "bleeding",
+		keywords = { "bleeding" },
 		templates = { "bleed", "bleed_long" },
 		icon = "content/ui/textures/icons/buffs/hud/zealot/zealot_crits_apply_bleed",
 		color = { 255, 220, 30, 30 },
 	},
 	{
 		id = "toxin",
-		keyword = "toxin",
-		templates = { "neurotoxin_interval_buff", "neurotoxin_interval_buff2", "neurotoxin_interval_buff3" },
+		keywords = { "toxin" },
+		templates = { "neurotoxin_interval_buff", "neurotoxin_interval_buff2", "neurotoxin_interval_buff3", "exploding_toxin_interval_buff" },
 		icon = "content/ui/textures/icons/buffs/hud/states_toxic_cloud_buff_hud",
 		color = { 255, 120, 220, 60 },
 	},
@@ -171,8 +187,18 @@ function Status.current_health(health_extension)
 	return health_extension:current_health()
 end
 
-local function _has_keyword(buff_extension, keyword)
-	return buff_extension.has_keyword ~= nil and buff_extension:has_keyword(keyword)
+local function _has_keyword(buff_extension, keywords)
+	if buff_extension.has_keyword == nil then
+		return false
+	end
+
+	for i = 1, #keywords do
+		if buff_extension:has_keyword(keywords[i]) then
+			return true
+		end
+	end
+
+	return false
 end
 
 -- Пишет в out[i] = { dot, stacks } и возвращает число записей (не больше max_count).
@@ -204,7 +230,7 @@ function Status.collect_dots(unit, out, max_count)
 		local shown = stacks > 0
 
 		-- варп-огонь тоже несёт ключевое слово burning: без своих стаков горение не показываем
-		if not shown and _has_keyword(buff_extension, dot.keyword) then
+		if not shown and _has_keyword(buff_extension, dot.keywords) then
 			shown = not (dot.id == "burning" and has_warpfire)
 		end
 
@@ -235,7 +261,7 @@ function Status.is_wounded(unit, health_extension)
 
 	if buff_extension then
 		for _, dot in ipairs(Status.DOTS) do
-			if _has_keyword(buff_extension, dot.keyword) then
+			if _has_keyword(buff_extension, dot.keywords) then
 				return true
 			end
 		end

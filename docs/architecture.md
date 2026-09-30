@@ -20,7 +20,8 @@
 | Горение | `flamer_assault`, `phosphor_burn` (+ огонь от луж в `liquid_area_buff_templates.lua`) | `burning` | 31 |
 | Варп-огонь | `warp_fire` | `burning` + `warpfire_burning` | 31 |
 | Кровотечение | `bleed`, `bleed_long` | `bleeding` | 16 / 18 |
-| Токсин | `neurotoxin_interval_buff`, `…2`, `…3` (+ `broker_buff_templates.lua`) | `toxin` | см. шаблоны |
+| Токсин | `neurotoxin_interval_buff`, `…2`, `…3`, `exploding_toxin_interval_buff` (+ `broker_buff_templates.lua`) | `toxin` | 30–31 |
+| Электрошок | `cryptic_electrocution_default`, `cryptic_discharge_*`, `arc_grenade_electrocution`, `shock_grenade_interval`, `power_maul_stun` и др. | `electrocuted`, `electrocuted_arc*`, `electrocuted_chain_lightning`, `electrocuted_shock_mine` | 1 (не стакается) |
 
 Для иконки проверять ключевое слово (`has_keyword`) — это дёшево и переживёт новые шаблоны. Число стаков брать через `current_stacks` по известным именам. Если имени в `BuffTemplates` нет, пропускать его: защита от патчей.
 
