@@ -31,6 +31,9 @@ local OCCLUSION_MAX_HITS = 16
 local HIT_INDEX_ACTOR = 4 -- формат результата PhysicsWorld.raycast "all", как в hit_scan.lua
 local OCCLUDED_ALPHA = 0.1
 local OCCLUSION_SPEED = 6
+local HEAD_NODE = "j_head"
+local HEAD_MARGIN = 0.3 -- метров над костью головы
+local DEFAULT_BASE_HEIGHT = 2
 local NUM_TICKS = 3 -- деления на 25, 50 и 75 %
 
 -- ширина полосы при масштабе 100 %
@@ -51,8 +54,11 @@ local BAR_COLOR_BY_CATEGORY = {
 local template = {}
 
 template.name = "auspex_vitals_bar"
-template.unit_node = "j_head"
-template.position_offset = { 0, 0, 0.45 }
+-- Высота полосы считается каждый кадр в _update_anchor: от корня юнита (node 1) до большего из
+-- «голова + HEAD_MARGIN» и «рост породы × размер врага», плюс сдвиг из настроек.
+-- Шаблон клонируется на каждый маркер, поэтому position_offset у каждого свой.
+template.unit_node = nil
+template.position_offset = { 0, 0, 2 }
 template.check_line_of_sight = true
 template.max_distance = 25
 template.screen_clamp = false
@@ -180,6 +186,17 @@ template.on_enter = function (widget, marker, template)
 	local category = data.category or "horde"
 
 	marker.bar_logic = HudHealthBarLogic:new(template.bar_settings)
+
+	local unit = marker.unit
+
+	marker.head_node = Unit.has_node(unit, HEAD_NODE) and Unit.node(unit, HEAD_NODE) or nil
+
+	-- рост породы с учётом размера этого врага (у миньонов он немного разный)
+	local breed = Status.breed(unit)
+	local unit_data = ScriptUnit.has_extension(unit, "unit_data_system")
+	local size = unit_data and unit_data.breed_size_variation and unit_data:breed_size_variation() or 1
+
+	marker.base_height = (breed and breed.base_height or DEFAULT_BASE_HEIGHT) * (size or 1)
 	local width_scale = (mod.cfg and mod.cfg.bar_width or 100) / 100
 
 	marker.width = math.min(math.floor((WIDTH_BY_CATEGORY[category] or WIDTH_BY_CATEGORY.horde) * width_scale), MAX_WIDTH)
@@ -393,9 +410,34 @@ local function _occlusion_alpha(parent, marker, cfg, dt)
 	return 1 - occlusion * (1 - OCCLUDED_ALPHA)
 end
 
+-- Высота полосы над корнем юнита на следующий кадр: движок прибавляет position_offset к позиции корня.
+local function _update_anchor(marker, template, cfg)
+	local unit = marker.unit
+
+	if not ALIVE[unit] then
+		return
+	end
+
+	local height = marker.base_height
+	local head_node = marker.head_node
+
+	if head_node then
+		-- голова выше роста породы (наклон, прыжок, крупная модель) — полоса над головой
+		local head_height = Unit.world_position(unit, head_node).z - Unit.world_position(unit, 1).z + HEAD_MARGIN
+
+		if head_height > height then
+			height = head_height
+		end
+	end
+
+	template.position_offset[3] = height + (cfg and cfg.bar_height_offset or 0) / 100
+end
+
 template.update_function = function (parent, ui_renderer, widget, marker, template, dt, t)
 	local unit = marker.unit
 	local content = widget.content
+
+	_update_anchor(marker, template, mod.cfg)
 	local style = widget.style
 	local cfg = mod.cfg
 	local health_extension = HEALTH_ALIVE[unit] and Status.health_extension(unit)

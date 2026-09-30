@@ -78,6 +78,14 @@ return {
 		en = "Base width: horde 100, elites and specialists 140, bosses 190 pixels.",
 		ru = "Базовая ширина: орда 100, элита и специалисты 140, боссы 190 пикселей.",
 	},
+	bar_height_offset = {
+		en = "Bar height offset, cm",
+		ru = "Сдвиг полосы по высоте, см",
+	},
+	bar_height_offset_description = {
+		en = "The bar is placed above the enemy automatically: above the head or at the breed's height, whichever is higher. This shifts it up (+) or down (-).",
+		ru = "Полоса ставится над врагом автоматически: над головой или на высоте роста породы — что выше. Этот сдвиг поднимает (+) или опускает (-) её.",
+	},
 	percent = {
 		en = "%%",
 		ru = "%%",

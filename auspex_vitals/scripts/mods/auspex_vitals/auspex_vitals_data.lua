@@ -52,6 +52,13 @@ return {
 						decimals_number = 0,
 						unit_text = "percent",
 					},
+					{
+						setting_id = "bar_height_offset",
+						type = "numeric",
+						default_value = 0,
+						range = { -100, 150 },
+						decimals_number = 0,
+					},
 					{ setting_id = "show_dots", type = "checkbox", default_value = true },
 					{ setting_id = "show_health_number", type = "checkbox", default_value = false },
 					{ setting_id = "show_name", type = "checkbox", default_value = false },
