@@ -209,7 +209,7 @@ mod:hook_safe("HudElementWorldMarkers", "destroy", function (self)
 end)
 
 mod:hook_safe("AttackReportManager", "add_attack_result", function (self, damage_profile, attacked_unit, attacking_unit, attack_direction, hit_world_position, hit_weakspot, damage, attack_result, attack_type, damage_efficiency, is_critical_strike)
-	DamageNumbers.on_attack_result(attacked_unit, attacking_unit, hit_world_position, hit_weakspot, damage, attack_type, is_critical_strike)
+	DamageNumbers.on_attack_result(damage_profile, attacked_unit, attacking_unit, hit_world_position, hit_weakspot, damage, attack_type, is_critical_strike)
 end)
 
 mod.on_all_mods_loaded = function ()

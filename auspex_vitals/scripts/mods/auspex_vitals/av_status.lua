@@ -12,6 +12,7 @@ Status.DOTS = {
 	{
 		id = "warpfire",
 		keywords = { "warpfire_burning" },
+		profiles = { "warpfire" },
 		templates = { "warp_fire" },
 		icon = "content/ui/textures/icons/buffs/hud/psyker/psyker_ranged_shots_soulblaze",
 		color = { 255, 170, 110, 255 },
@@ -19,6 +20,7 @@ Status.DOTS = {
 	{
 		id = "burning",
 		keywords = { "burning" },
+		profiles = { "burn" },
 		templates = { "flamer_assault", "phosphor_burn" },
 		icon = "content/ui/textures/icons/buffs/hud/states_fire_buff_hud",
 		color = { 255, 255, 140, 30 },
@@ -35,12 +37,14 @@ Status.DOTS = {
 			"electrocuted_shock_mine",
 		},
 		templates = {},
+		profiles = { "shock", "stun", "chain_light", "electr" },
 		icon = "content/ui/textures/icons/buffs/hud/states_electric_buff_hud",
 		color = { 255, 120, 200, 255 },
 	},
 	{
 		id = "bleeding",
 		keywords = { "bleeding" },
+		profiles = { "bleed" },
 		templates = { "bleed", "bleed_long" },
 		icon = "content/ui/textures/icons/buffs/hud/zealot/zealot_crits_apply_bleed",
 		color = { 255, 220, 30, 30 },
@@ -48,6 +52,7 @@ Status.DOTS = {
 	{
 		id = "toxin",
 		keywords = { "toxin" },
+		profiles = { "toxin" },
 		templates = { "neurotoxin_interval_buff", "neurotoxin_interval_buff2", "neurotoxin_interval_buff3", "exploding_toxin_interval_buff" },
 		icon = "content/ui/textures/icons/buffs/hud/states_toxic_cloud_buff_hud",
 		color = { 255, 120, 220, 60 },
@@ -79,6 +84,47 @@ end
 -- набор загруженных пакетов меняется между хабом и миссией
 function Status.reset_resource_cache()
 	table.clear(_resource_cache)
+end
+
+-- Материал иконок баффов игры (как в её панели баффов): картинка — material_values.talent_icon.
+Status.ICON_MATERIAL = "content/ui/materials/icons/buffs/hud/buff_container_with_background"
+Status.ICON_GRADIENT = "content/ui/textures/color_ramps/talent_default"
+
+-- Эффект по имени профиля урона тика (burning, phosphor_burning, warpfire, bleeding, toxin_variant_1,
+-- cryptic_arc_shock_damage...). Сравниваем по подстроке: так переживём новые профили тех же эффектов.
+-- Если подходят несколько, побеждает та подстрока, что стоит в имени раньше
+-- (broker_toxin_stacks_stun_interval — токсин, а не электрошок).
+local _dot_by_profile = {}
+
+function Status.dot_by_damage_profile(damage_profile)
+	local name = damage_profile and damage_profile.name
+
+	if not name then
+		return nil
+	end
+
+	local dot = _dot_by_profile[name]
+
+	if dot == nil then
+		dot = false
+
+		local best_position
+
+		for _, candidate in ipairs(Status.DOTS) do
+			for _, pattern in ipairs(candidate.profiles or {}) do
+				local position = string.find(name, pattern, 1, true)
+
+				if position and (not best_position or position < best_position) then
+					best_position = position
+					dot = candidate
+				end
+			end
+		end
+
+		_dot_by_profile[name] = dot
+	end
+
+	return dot or nil
 end
 
 local BOSS_TAGS = { "monster", "captain", "cultist_captain", "lord" }

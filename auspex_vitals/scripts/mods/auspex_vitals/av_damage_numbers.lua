@@ -42,6 +42,9 @@ local FONT_TYPE = "proxima_nova_bold"
 local FONT_SIZE = 24
 local CRIT_FONT_SIZE = 30
 local HEAD_HEIGHT = 1.6
+local ICON_SCALE = 0.9 -- размер значка эффекта относительно шрифта
+local ICON_GAP = 4
+local DIGIT_WIDTH = 0.55 -- ширина цифры в размерах шрифта: оценка, чтобы поставить значок у центрированного текста
 
 local COLOR_NORMAL = { 255, 255, 255, 255 }
 local COLOR_WEAKSPOT = { 255, 255, 220, 60 }
@@ -72,7 +75,7 @@ template.check_line_of_sight = false
 template.screen_clamp = false
 
 template.create_widget_defintion = function (template, scenegraph_id)
-	return UIWidget.create_definition({
+	local passes = {
 		{
 			pass_type = "text",
 			style_id = "text",
@@ -89,7 +92,30 @@ template.create_widget_defintion = function (template, scenegraph_id)
 				text_color = { 255, 255, 255, 255 },
 			},
 		},
-	}, scenegraph_id)
+	}
+
+	-- значок эффекта у цифр периодического урона; материал — из пакета игры, без него значков нет
+	if Status.resource_available("material", Status.ICON_MATERIAL) then
+		passes[#passes + 1] = {
+			pass_type = "texture",
+			style_id = "icon",
+			value = Status.ICON_MATERIAL,
+			style = {
+				offset = { 0, 0, 11 },
+				size = { FONT_SIZE, FONT_SIZE },
+				color = { 255, 255, 255, 255 },
+				material_values = {
+					opacity = 1,
+					progress = 1,
+				},
+			},
+			visibility_function = function (content, style)
+				return content.show_icon == true
+			end,
+		}
+	end
+
+	return UIWidget.create_definition(passes, scenegraph_id)
 end
 
 template.on_enter = function (widget, marker, template)
@@ -105,7 +131,7 @@ end
 
 local function _color_for(slot)
 	if slot.is_dot then
-		return COLOR_DOT
+		return slot.dot and slot.dot.color or COLOR_DOT
 	elseif slot.crit then
 		return COLOR_CRIT
 	elseif slot.weakspot then
@@ -136,12 +162,59 @@ local function _column_row(slot, any_unit)
 	return row
 end
 
+-- Значок эффекта рядом с цифрой периодического урона. Ставится с внешней стороны от числа:
+-- справа от центра — перед числом, слева — после него, у всплывающих — слева от числа.
+local function _layout_icon(widget, slot, text_style, kind, style_name, num_digits)
+	local content = widget.content
+	local icon_style = widget.style.icon
+	local dot = slot.is_dot and slot.dot
+	local icon = dot and icon_style and dot.icon and Status.resource_available("texture", dot.icon) and dot.icon
+
+	if not icon then
+		content.show_icon = false
+
+		return
+	end
+
+	local material_values = icon_style.material_values
+
+	if material_values.talent_icon ~= icon then
+		material_values.talent_icon = icon
+		material_values.gradient_map = Status.resource_available("texture", Status.ICON_GRADIENT) and Status.ICON_GRADIENT or nil
+	end
+
+	local font_size = text_style.font_size
+	local icon_size = font_size * ICON_SCALE
+	local text_offset = text_style.offset
+	local icon_offset = icon_style.offset
+
+	icon_style.size[1] = icon_size
+	icon_style.size[2] = icon_size
+	icon_offset[2] = text_offset[2] + (TEXT_BOX_HEIGHT - icon_size) * 0.5
+
+	if kind == "floating" then
+		local text_width = num_digits * font_size * DIGIT_WIDTH
+
+		icon_offset[1] = text_offset[1] + (TEXT_BOX_WIDTH - text_width) * 0.5 - icon_size - ICON_GAP
+	elseif RIGHT_STYLES[style_name] then
+		-- текст выровнен влево от отступа: значок встаёт на его место, число сдвигается
+		icon_offset[1] = text_offset[1]
+		text_offset[1] = text_offset[1] + icon_size + ICON_GAP
+	else
+		-- текст выровнен вправо к отступу: значок — сразу за ним, ближе к центру
+		icon_offset[1] = text_offset[1] + TEXT_BOX_WIDTH + ICON_GAP
+	end
+
+	content.show_icon = true
+end
+
 template.update_function = function (parent, ui_renderer, widget, marker, template, dt, t)
 	local slot = marker.data.slot
 	local content = widget.content
 
 	if not slot.active then
 		content.text = ""
+		content.show_icon = false
 
 		return
 	end
@@ -156,6 +229,7 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 	if age > duration then
 		slot.active = false
 		content.text = ""
+		content.show_icon = false
 
 		return
 	end
@@ -213,7 +287,10 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 		offset[2] = -TEXT_BOX_HEIGHT * 0.5 - progress * RISE * scale
 	end
 
-	content.text = string.format("%d", math.floor(slot.value + 0.5))
+	local text = string.format("%d", math.floor(slot.value + 0.5))
+
+	content.text = text
+	_layout_icon(widget, slot, style, kind, style_name, #text)
 	widget.alpha_multiplier = progress < FADE_START and 1 or 1 - (progress - FADE_START) / (1 - FADE_START)
 end
 
@@ -244,7 +321,7 @@ function DamageNumbers.clear()
 	end
 end
 
-local function _find_slot(unit, is_dot, now)
+local function _find_slot(unit, is_dot, dot, now)
 	local merge_window = is_dot and MERGE_DOT or MERGE_HIT
 	local free, oldest
 
@@ -252,7 +329,8 @@ local function _find_slot(unit, is_dot, now)
 		local slot = _slots[i]
 
 		if slot.active then
-			if unit and slot.unit == unit and slot.is_dot == is_dot and now - slot.last_t <= merge_window then
+			-- тики разных эффектов по одному врагу складываются отдельно
+			if unit and slot.unit == unit and slot.is_dot == is_dot and slot.dot == dot and now - slot.last_t <= merge_window then
 				return slot, true
 			end
 
@@ -268,7 +346,7 @@ local function _find_slot(unit, is_dot, now)
 	return free or oldest, false
 end
 
-local function _add(unit, position, damage, is_crit, is_weakspot, is_dot)
+local function _add(unit, position, damage, is_crit, is_weakspot, is_dot, dot)
 	local element = _element
 
 	if not element then
@@ -276,7 +354,7 @@ local function _add(unit, position, damage, is_crit, is_weakspot, is_dot)
 	end
 
 	local now = DamageNumbers.now
-	local slot, merged = _find_slot(unit, is_dot, now)
+	local slot, merged = _find_slot(unit, is_dot, dot, now)
 
 	if merged then
 		slot.value = slot.value + damage
@@ -294,6 +372,7 @@ local function _add(unit, position, damage, is_crit, is_weakspot, is_dot)
 	slot.active = true
 	slot.unit = unit
 	slot.is_dot = is_dot
+	slot.dot = dot
 	slot.value = damage
 	slot.crit = is_crit
 	slot.weakspot = is_weakspot
@@ -318,7 +397,7 @@ local function _local_player_unit()
 end
 
 -- Вызывается из хука AttackReportManager.add_attack_result.
-function DamageNumbers.on_attack_result(attacked_unit, attacking_unit, hit_world_position, hit_weakspot, damage, attack_type, is_critical_strike)
+function DamageNumbers.on_attack_result(damage_profile, attacked_unit, attacking_unit, hit_world_position, hit_weakspot, damage, attack_type, is_critical_strike)
 	local cfg = mod.cfg
 
 	if not cfg or not cfg.show_damage_numbers or not damage or damage <= 0 then
@@ -361,7 +440,9 @@ function DamageNumbers.on_attack_result(attacked_unit, attacking_unit, hit_world
 		end
 	end
 
-	_add(attacked_unit, position, damage, is_critical_strike == true, hit_weakspot == true, is_dot)
+	local dot = is_dot and Status.dot_by_damage_profile(damage_profile) or nil
+
+	_add(attacked_unit, position, damage, is_critical_strike == true, hit_weakspot == true, is_dot, dot or false)
 end
 
 return DamageNumbers

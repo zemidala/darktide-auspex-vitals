@@ -10,8 +10,8 @@ local UIWidget = require("scripts/managers/ui/ui_widget")
 
 local MAX_DOTS = 3
 -- иконки периодического урона рисуем материалом иконок баффов игры (как в её панели баффов)
-local ICON_MATERIAL = "content/ui/materials/icons/buffs/hud/buff_container_with_background"
-local ICON_GRADIENT = "content/ui/textures/color_ramps/talent_default"
+local ICON_MATERIAL = Status.ICON_MATERIAL
+local ICON_GRADIENT = Status.ICON_GRADIENT
 local ICON_SIZE = 18
 local DOT_UPDATE_INTERVAL = 0.2
 local BAR_HEIGHT = 7
