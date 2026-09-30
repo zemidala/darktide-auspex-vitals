@@ -75,16 +75,20 @@ return {
 		ru = "Вид здоровья",
 	},
 	bar_style_description = {
-		en = "Bar — a thin bar over the enemy. Ring — a compact ring, damage eats it clockwise. Sphere — a filled circle, health poured bottom-up like liquid. Ring and sphere take less space in a crowd.",
-		ru = "Полоса — тонкая полоса над врагом. Кольцо — компактное кольцо, урон «съедает» его по часовой стрелке. Сфера — залитый круг, здоровье налито снизу вверх, как жидкость. Кольцо и сфера в толпе занимают меньше места.",
+		en = "Bar — a thin bar over the enemy. Ring — a compact ring, damage eats it clockwise: dots (with a light trail of fresh damage) or smooth. Sphere — a filled circle, health poured bottom-up like liquid. Rings and the sphere take less space in a crowd.",
+		ru = "Полоса — тонкая полоса над врагом. Кольцо — компактное кольцо, урон «съедает» его по часовой стрелке: из точек (со светлым следом свежего урона) или гладкое. Сфера — залитый круг, здоровье налито снизу вверх, как жидкость. Кольца и сфера в толпе занимают меньше места.",
 	},
 	bar_style_bar = {
 		en = "Bar",
 		ru = "Полоса",
 	},
 	bar_style_ring = {
-		en = "Ring",
-		ru = "Кольцо",
+		en = "Ring (dots)",
+		ru = "Кольцо (точки)",
+	},
+	bar_style_ring_smooth = {
+		en = "Ring (smooth)",
+		ru = "Кольцо (гладкое)",
 	},
 	bar_style_sphere = {
 		en = "Sphere",
@@ -117,6 +121,14 @@ return {
 	show_dots_description = {
 		en = "Burning, warpfire, electrocution, bleeding and toxin under the bar, with stack counts where the effect stacks.",
 		ru = "Горение, варп-огонь, электрошок, кровотечение и токсин под полосой, с числом стаков, если эффект стакается.",
+	},
+	dot_center = {
+		en = "Main effect in the center",
+		ru = "Главный эффект в центре",
+	},
+	dot_center_description = {
+		en = "For rings and the sphere: the top-priority effect icon sits inside the shape, its stacks to the left; other effects stay in a row below.",
+		ru = "Для колец и сферы: значок самого важного эффекта — внутри фигуры, его стаки — слева; остальные эффекты — строкой ниже.",
 	},
 	show_health_number = {
 		en = "Health number",

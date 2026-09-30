@@ -51,6 +51,7 @@ return {
 						options = {
 							{ text = "bar_style_bar", value = "bar" },
 							{ text = "bar_style_ring", value = "ring" },
+							{ text = "bar_style_ring_smooth", value = "ring_smooth" },
 							{ text = "bar_style_sphere", value = "sphere" },
 						},
 					},
@@ -70,6 +71,7 @@ return {
 						decimals_number = 0,
 					},
 					{ setting_id = "show_dots", type = "checkbox", default_value = true },
+					{ setting_id = "dot_center", type = "checkbox", default_value = false },
 					{ setting_id = "show_health_number", type = "checkbox", default_value = false },
 					{ setting_id = "show_name", type = "checkbox", default_value = false },
 					{ setting_id = "line_of_sight", type = "checkbox", default_value = true },

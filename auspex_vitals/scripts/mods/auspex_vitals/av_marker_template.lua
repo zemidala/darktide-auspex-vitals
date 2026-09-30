@@ -70,6 +70,20 @@ local SPHERE_BY_CATEGORY = {
 }
 local SPHERE_MAX_DIAMETER = 160
 
+-- Гладкое кольцо (bar_style = "ring_smooth"): круг разборки предмета игры, у него своя круговая заливка
+-- material_values.progress. Отражаем по горизонтали (uvs), чтобы урон «съедал» кольцо по часовой стрелке
+-- от 12 часов, как у кольца из точек. «Призрачного» урона нет: незаполненная часть материала непрозрачна.
+local RING_SMOOTH_MATERIAL = "content/ui/materials/icons/items/salvage_circle"
+-- диаметр при масштабе 100 %
+local RING_SMOOTH_BY_CATEGORY = {
+	horde = 26,
+	elite = 34,
+	special = 34,
+	boss = 46,
+}
+-- доля диаметра под значок эффекта в центре фигуры
+local CENTER_ICON_FRACTION = 0.55
+
 -- ширина полосы при масштабе 100 %
 local WIDTH_BY_CATEGORY = {
 	horde = 100,
@@ -174,6 +188,27 @@ template.create_widget_defintion = function (template, scenegraph_id)
 		end
 	end
 
+	-- гладкое кольцо: только если выбран этот вид и материал загружен
+	if mod.cfg and mod.cfg.bar_style == "ring_smooth" and Status.resource_available("material", RING_SMOOTH_MATERIAL) then
+		passes[#passes + 1] = {
+			pass_type = "texture_uv",
+			style_id = "ring_smooth",
+			value = RING_SMOOTH_MATERIAL,
+			style = {
+				offset = { 0, 0, 3 },
+				size = { 0, 0 },
+				color = { 255, 255, 255, 255 },
+				material_values = {
+					progress = 1,
+				},
+				uvs = {
+					{ 1, 0 },
+					{ 0, 1 },
+				},
+			},
+		}
+	end
+
 	-- сфера: только если выбран этот вид и материал загружен
 	if mod.cfg and mod.cfg.bar_style == "sphere" and Status.resource_available("material", SPHERE_MATERIAL) then
 		passes[#passes + 1] = {
@@ -270,6 +305,17 @@ template.create_widget_defintion = function (template, scenegraph_id)
 	return UIWidget.create_definition(passes, scenegraph_id)
 end
 
+-- Части полосы не нужны, когда здоровье показано кольцом или сферой.
+local function _hide_bar(style)
+	style.background.size[1] = 0
+	style.ghost_bar.size[1] = 0
+	style.bar.size[1] = 0
+
+	for i = 1, NUM_TICKS do
+		style["tick_" .. i].size[1] = 0
+	end
+end
+
 template.on_enter = function (widget, marker, template)
 	local data = marker.data or {}
 	local category = data.category or "horde"
@@ -291,6 +337,21 @@ template.on_enter = function (widget, marker, template)
 	marker.width = math.min(math.floor((WIDTH_BY_CATEGORY[category] or WIDTH_BY_CATEGORY.horde) * width_scale), MAX_WIDTH)
 	marker.dot_row_y = DOT_ROW_Y
 
+	if widget.style.ring_smooth then
+		local diameter = math.min(math.floor((RING_SMOOTH_BY_CATEGORY[category] or RING_SMOOTH_BY_CATEGORY.horde) * width_scale + 0.5), SPHERE_MAX_DIAMETER)
+		local ring_style = widget.style.ring_smooth
+
+		marker.is_ring_smooth = true
+		marker.shape_diameter = diameter
+		marker.shape_center_y = diameter * 0.5
+		marker.width = diameter
+		marker.dot_row_y = diameter + 3
+		ring_style.offset[1] = -diameter * 0.5
+		ring_style.size[1] = diameter
+		ring_style.size[2] = diameter
+		_hide_bar(widget.style)
+	end
+
 	if widget.style.sphere_fill then
 		local diameter = math.min(math.floor((SPHERE_BY_CATEGORY[category] or SPHERE_BY_CATEGORY.horde) * width_scale + 0.5), SPHERE_MAX_DIAMETER)
 		local style = widget.style
@@ -298,6 +359,8 @@ template.on_enter = function (widget, marker, template)
 
 		marker.is_sphere = true
 		marker.sphere_diameter = diameter
+		marker.shape_diameter = diameter
+		marker.shape_center_y = diameter * 0.5
 		marker.width = diameter
 		marker.dot_row_y = diameter + 3
 
@@ -344,6 +407,8 @@ template.on_enter = function (widget, marker, template)
 		marker.is_ring = true
 		marker.ring_radius = ring.radius * width_scale
 		marker.ring_dot = math.min(math.max(math.floor(ring.dot * width_scale + 0.5), 2), RING_MAX_DOT)
+		marker.shape_diameter = marker.ring_radius * 2 - marker.ring_dot
+		marker.shape_center_y = marker.ring_radius + marker.ring_dot * 0.5
 		-- для строки эффектов и числа здоровья кольцо — это «полоса» шириной в диаметр
 		marker.width = math.floor(marker.ring_radius * 2 + marker.ring_dot)
 		marker.dot_row_y = marker.ring_radius * 2 + marker.ring_dot + 3
@@ -368,6 +433,11 @@ template.on_enter = function (widget, marker, template)
 
 	for i = 1, MAX_DOTS do
 		marker.dots[i] = {}
+	end
+
+	-- значок главного эффекта в центре фигуры (кольца, сферы)
+	if marker.shape_diameter and mod.cfg and mod.cfg.dot_center then
+		marker.center_dot_size = math.max(math.floor(marker.shape_diameter * CENTER_ICON_FRACTION), 8)
 	end
 
 	local bar_color = BAR_COLOR_BY_CATEGORY[category] or BAR_COLOR_BY_CATEGORY.horde
@@ -478,84 +548,117 @@ local function _dot_visual(style, i, dot)
 	return kind, path
 end
 
+-- Одна ячейка эффекта: значок (плоский / баффа / цветная метка) в точке (x, y) размера icon_size.
+-- Возвращает x правого края значка.
+local function _layout_dot_icon(widget, i, dot, x, y, icon_size, gradient)
+	local style = widget.style
+	local content = widget.content
+	local chip_style = style["dot_chip_" .. i]
+	local icon_style = style["dot_icon_" .. i]
+	local flat_id = "dot_flat_" .. i
+	local flat_style = style[flat_id]
+	local visible_id = "dot_icon_visible_" .. i
+	local color = dot.color
+	local kind, path = _dot_visual(style, i, dot)
+
+	if kind == "flat" then
+		local flat_color = flat_style.color
+
+		flat_color[2], flat_color[3], flat_color[4] = color[2], color[3], color[4]
+		flat_style.offset[1] = x
+		flat_style.offset[2] = y
+		flat_style.size[1] = icon_size
+		flat_style.size[2] = icon_size
+		content[flat_id] = path
+		content[flat_id .. "_on"] = true
+		content[visible_id] = false
+		chip_style.size[1] = 0
+
+		return x + icon_size
+	elseif kind == "buff" then
+		local material_values = icon_style.material_values
+
+		-- текстуру меняем только при смене эффекта в этой ячейке
+		if material_values.talent_icon ~= path then
+			material_values.talent_icon = path
+			material_values.gradient_map = gradient
+		end
+
+		icon_style.offset[1] = x
+		icon_style.offset[2] = y
+		icon_style.size[1] = icon_size
+		icon_style.size[2] = icon_size
+		content[visible_id] = true
+		content[flat_id .. "_on"] = false
+		chip_style.size[1] = 0
+
+		return x + icon_size
+	end
+
+	local chip_color = chip_style.color
+	local chip_size = math.max(math.floor(icon_size / 3), 4)
+
+	chip_color[1], chip_color[2], chip_color[3], chip_color[4] = color[1], color[2], color[3], color[4]
+	chip_style.size[1] = chip_size
+	chip_style.size[2] = chip_size
+	chip_style.offset[1] = x
+	chip_style.offset[2] = y + (icon_size - chip_size) * 0.5
+	content[visible_id] = false
+	content[flat_id .. "_on"] = false
+
+	return x + chip_size
+end
+
+local function _hide_dot(widget, i)
+	local content = widget.content
+
+	widget.style["dot_chip_" .. i].size[1] = 0
+	content["dot_text_" .. i] = ""
+	content["dot_icon_visible_" .. i] = false
+	content["dot_flat_" .. i .. "_on"] = false
+end
+
+-- Эффекты: строкой под полосой/фигурой. С настройкой «значок в центре» (кольца и сфера) первый эффект
+-- встаёт в центр фигуры, его стаки — слева от фигуры, остальные эффекты — строкой ниже.
 local function _layout_dots(widget, marker, show)
 	local style = widget.style
 	local content = widget.content
-	local left = -marker.width * 0.5
 	local count = show and marker.dot_count or 0
-	local x = left
 	local row_y = marker.dot_row_y or DOT_ROW_Y
+	local x = -marker.width * 0.5
 	local gradient = Status.resource_available("texture", ICON_GRADIENT) and ICON_GRADIENT or nil
+	local center = marker.center_dot_size ~= nil
 
 	for i = 1, MAX_DOTS do
-		local chip_id = "dot_chip_" .. i
-		local text_id = "dot_text_" .. i
-		local icon_id = "dot_icon_" .. i
-		local visible_id = "dot_icon_visible_" .. i
-		local chip_style = style[chip_id]
-		local text_style = style[text_id]
-		local icon_style = style[icon_id]
-		local flat_id = "dot_flat_" .. i
-		local flat_style = style[flat_id]
-
-		if i <= count then
+		if i > count then
+			_hide_dot(widget, i)
+		else
 			local entry = marker.dots[i]
 			local dot = entry.dot
 			local color = dot.color
-			local kind, path = _dot_visual(style, i, dot)
-			local text_x
-
-			if kind == "flat" then
-				local flat_color = flat_style.color
-
-				flat_color[2], flat_color[3], flat_color[4] = color[2], color[3], color[4]
-				flat_style.offset[1] = x
-				flat_style.offset[2] = row_y
-				content[flat_id] = path
-				content[flat_id .. "_on"] = true
-				content[visible_id] = false
-				chip_style.size[1] = 0
-				text_x = x + ICON_SIZE + 2
-			elseif kind == "buff" then
-				local material_values = icon_style.material_values
-
-				-- текстуру меняем только при смене эффекта в этой ячейке
-				if material_values.talent_icon ~= path then
-					material_values.talent_icon = path
-					material_values.gradient_map = gradient
-				end
-
-				icon_style.offset[1] = x
-				icon_style.offset[2] = row_y
-				content[visible_id] = true
-				content[flat_id .. "_on"] = false
-				chip_style.size[1] = 0
-				text_x = x + ICON_SIZE + 2
-			else
-				content[flat_id .. "_on"] = false
-				local chip_color = chip_style.color
-
-				chip_color[1], chip_color[2], chip_color[3], chip_color[4] = color[1], color[2], color[3], color[4]
-				chip_style.size[1] = 6
-				chip_style.offset[1] = x
-				chip_style.offset[2] = row_y + (ICON_SIZE - 6) * 0.5
-				content[visible_id] = false
-				text_x = x + 8
-			end
-
+			local text_style = style["dot_text_" .. i]
 			local text_color = text_style.text_color
 
 			text_color[2], text_color[3], text_color[4] = color[2], color[3], color[4]
-			text_style.offset[1] = text_x
-			text_style.offset[2] = row_y + ICON_SIZE * 0.5 - 8
-			content[text_id] = entry.stacks > 0 and tostring(entry.stacks) or ""
+			content["dot_text_" .. i] = entry.stacks > 0 and tostring(entry.stacks) or ""
 
-			x = text_x + (entry.stacks > 9 and 22 or entry.stacks > 0 and 14 or 2)
-		else
-			chip_style.size[1] = 0
-			content[text_id] = ""
-			content[visible_id] = false
-			content[flat_id .. "_on"] = false
+			if center and i == 1 then
+				local size = marker.center_dot_size
+
+				_layout_dot_icon(widget, i, dot, -size * 0.5, marker.shape_center_y - size * 0.5, size, gradient)
+
+				-- стаки главного эффекта — слева от фигуры (справа — число здоровья)
+				text_style.text_horizontal_alignment = "right"
+				text_style.offset[1] = -marker.width * 0.5 - 4 - text_style.size[1]
+				text_style.offset[2] = marker.shape_center_y - 8
+			else
+				local right = _layout_dot_icon(widget, i, dot, x, row_y, ICON_SIZE, gradient)
+
+				text_style.text_horizontal_alignment = "left"
+				text_style.offset[1] = right + 2
+				text_style.offset[2] = row_y + ICON_SIZE * 0.5 - 8
+				x = right + 2 + (entry.stacks > 9 and 22 or entry.stacks > 0 and 14 or 2)
+			end
 		end
 	end
 end
@@ -668,7 +771,14 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 	local health_fraction, ghost_fraction = bar_logic:animated_health_fractions()
 
 	if health_fraction and ghost_fraction then
-		if marker.is_sphere then
+		if marker.is_ring_smooth then
+			local ring_style = style.ring_smooth
+			local ring_color = ring_style.color
+			local bar_color = marker.bar_color
+
+			ring_color[1], ring_color[2], ring_color[3], ring_color[4] = bar_color[1], bar_color[2], bar_color[3], bar_color[4]
+			ring_style.material_values.progress = math.clamp(health_fraction, 0, 1)
+		elseif marker.is_sphere then
 			_layout_sphere(style, marker, health_fraction, ghost_fraction)
 		elseif marker.is_ring then
 			_layout_ring(style, marker, health_fraction, ghost_fraction)
@@ -708,7 +818,7 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 
 		style.health_text.offset[1] = marker.width * 0.5 + 4
 		-- у кольца число — справа по центру кольца, у полосы — справа от полосы
-		style.health_text.offset[2] = marker.is_sphere and marker.sphere_diameter * 0.5 - 10 or marker.is_ring and marker.ring_radius + marker.ring_dot * 0.5 - 10 or BAR_HEIGHT * 0.5 - 10
+		style.health_text.offset[2] = marker.shape_center_y and marker.shape_center_y - 10 or BAR_HEIGHT * 0.5 - 10
 		content.health_text = health and string.format("%d", math.ceil(health)) or ""
 	else
 		content.health_text = ""
