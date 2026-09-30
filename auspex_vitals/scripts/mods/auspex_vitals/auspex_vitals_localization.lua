@@ -159,6 +159,14 @@ return {
 		en = "Size",
 		ru = "Размер",
 	},
+	damage_numbers_column_offset = {
+		en = "Column offset, px",
+		ru = "Отступ столбца, пикс.",
+	},
+	damage_numbers_column_offset_description = {
+		en = "How far from the enemy's center the column stands. Increase it if the enemy model covers the numbers.",
+		ru = "Насколько далеко от центра врага стоит столбец. Увеличьте, если модель врага закрывает цифры.",
+	},
 	damage_numbers_dots = {
 		en = "Damage over time",
 		ru = "Периодический урон",

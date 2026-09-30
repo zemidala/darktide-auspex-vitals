@@ -83,6 +83,13 @@ return {
 						decimals_number = 0,
 						unit_text = "percent",
 					},
+					{
+						setting_id = "damage_numbers_column_offset",
+						type = "numeric",
+						default_value = 120,
+						range = { 20, 500 },
+						decimals_number = 0,
+					},
 					{ setting_id = "damage_numbers_dots", type = "checkbox", default_value = true },
 				},
 			},

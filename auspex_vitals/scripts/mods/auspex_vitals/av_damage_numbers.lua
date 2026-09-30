@@ -14,7 +14,6 @@ local UIWidget = require("scripts/managers/ui/ui_widget")
 local POOL_SIZE = 16
 local DURATION = 1.1
 local DURATION_COLUMN = 1.8 -- в столбце числа живут дольше: их читают как ленту
-local COLUMN_GAP = 45 -- отступ столбца от центра врага, пикселей
 local ROW_SPACING = 1.1 -- высота строки столбца в размерах шрифта
 local TEXT_BOX_WIDTH = 240
 local TEXT_BOX_HEIGHT = 60
@@ -165,9 +164,11 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 
 		local row = unit and _column_row(slot) or 0
 		local is_right = style_name == "column_right"
+		-- отступ от центра врага — настройка, чтобы модель не закрывала цифры
+		local gap = cfg.damage_numbers_column_offset or 120
 
 		style.text_horizontal_alignment = is_right and "left" or "right"
-		offset[1] = is_right and COLUMN_GAP or -COLUMN_GAP - TEXT_BOX_WIDTH
+		offset[1] = is_right and gap or -gap - TEXT_BOX_WIDTH
 		offset[2] = -TEXT_BOX_HEIGHT * 0.5 - row * FONT_SIZE * scale * ROW_SPACING
 	else
 		style.text_horizontal_alignment = "center"

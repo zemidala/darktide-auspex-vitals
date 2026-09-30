@@ -75,6 +75,7 @@ local function _read_settings()
 		show_damage_numbers = mod:get("show_damage_numbers") ~= false,
 		damage_numbers_style = mod:get("damage_numbers_style") or "floating",
 		damage_numbers_scale = mod:get("damage_numbers_scale") or 100,
+		damage_numbers_column_offset = mod:get("damage_numbers_column_offset") or 120,
 		damage_numbers_dots = mod:get("damage_numbers_dots") ~= false,
 		show_bosses_with_game_bar = mod:get("show_bosses_with_game_bar") ~= false,
 		prioritize_aim = mod:get("prioritize_aim") ~= false,
