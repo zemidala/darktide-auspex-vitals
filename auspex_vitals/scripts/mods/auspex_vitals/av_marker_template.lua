@@ -40,6 +40,9 @@ local SCALE_FAR_MIN = 0.55
 local WALL_FILTER = "filter_player_character_shooting_raycast_statics"
 local OCCLUSION_FILTER = "filter_player_character_shooting_raycast_dynamics"
 local VISIBILITY_SPEED = 3
+-- ВРЕМЕННО: диагностика видимости в лог (что закрывает маркер), не чаще раза в DEBUG_INTERVAL на маркер
+local DEBUG_VISIBILITY = true
+local DEBUG_INTERVAL = 2
 local OCCLUSION_INTERVAL = 0.1
 local OCCLUSION_MARGIN = 0.3 -- метров до полосы, где попадание уже не считается перекрытием
 local OCCLUSION_START = 1 -- луч начинается перед камерой, чтобы не задеть своего персонажа
@@ -630,6 +633,10 @@ local function _blocker(parent, marker, cfg)
 		local wall_hit = PhysicsWorld.raycast(physics_world, from, direction, distance, "any", "types", "statics", "collision_filter", WALL_FILTER)
 
 		if wall_hit then
+			if DEBUG_VISIBILITY then
+				marker.debug_blocker = string.format("wall at %.1f of %.1f m", Vector3.distance(from, select(2, PhysicsWorld.raycast(physics_world, from, direction, distance, "closest", "types", "statics", "collision_filter", WALL_FILTER)) or from), distance)
+			end
+
 			return "wall"
 		end
 	end
@@ -655,6 +662,10 @@ local function _blocker(parent, marker, cfg)
 			local breed = Status.breed(hit_unit)
 
 			if breed and breed.breed_type == "minion" then
+				if DEBUG_VISIBILITY then
+					marker.debug_blocker = string.format("enemy %s (alive=%s) hit %d/%d", breed.name, tostring(HEALTH_ALIVE[hit_unit] == true), i, num_hits or #hits)
+				end
+
 				return "enemy"
 			end
 		end
@@ -694,6 +705,18 @@ local function _visibility_alpha(parent, marker, cfg, dt)
 
 	marker.visibility = visibility
 	marker.occlusion = occlusion
+
+	if DEBUG_VISIBILITY and blocker then
+		local now = Managers.time and Managers.time:time("main") or 0
+
+		if now >= (marker.debug_next_t or 0) then
+			marker.debug_next_t = now + DEBUG_INTERVAL
+
+			local own = Status.breed(marker.unit)
+
+			mod:info("visibility %s: %s, alpha %.2f", own and own.name or "?", marker.debug_blocker or blocker, visibility * (1 - occlusion * (1 - OCCLUDED_ALPHA)))
+		end
+	end
 
 	return visibility * (1 - occlusion * (1 - OCCLUDED_ALPHA))
 end
