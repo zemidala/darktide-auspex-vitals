@@ -1,4 +1,5 @@
--- Планировщик маркеров: раз в SELECT_INTERVAL выбирает до max_markers ближайших подходящих врагов,
+-- Планировщик маркеров: раз в SELECT_INTERVAL выбирает до max_markers ближайших подходящих врагов
+-- (с поправкой на угол от центра экрана, если включено),
 -- новым ставит маркер, выбывшим снимает. Так виджеты есть только у K врагов, а не у всей орды.
 
 local mod = get_mod("auspex_vitals")
@@ -8,6 +9,10 @@ local Template = mod.av_marker_template
 local SELECT_INTERVAL = 0.15
 -- уже отмеченный враг считается чуть ближе, чтобы полосы не мигали на границе отбора
 local KEEP_BONUS = 0.8
+-- приоритет по прицелу: враг на краю экрана «дальше» центрального в (1 + AIM_WEIGHT * (1 - cos угла)) раз
+local AIM_WEIGHT = 1.5
+-- направление берём на грудь врага, а не на ноги
+local AIM_HEIGHT = 1
 
 local Tracker = {}
 
@@ -16,7 +21,7 @@ local _markers = {} -- unit -> marker id
 local _timer = 0
 
 local _candidates = {}
-local _distances = {}
+local _distances = {} -- unit -> оценка для сортировки (квадрат расстояния с поправками)
 local _wanted = {}
 
 local function _sort_by_distance(a, b)
@@ -104,6 +109,10 @@ local function _select(element, cfg)
 	end
 
 	local origin = POSITION_LOOKUP[player_unit] or Unit.world_position(player_unit, 1)
+	local camera = cfg.prioritize_aim and element._player_camera
+	local camera_position = camera and Camera.local_position(camera)
+	local camera_forward = camera and Quaternion.forward(Camera.local_rotation(camera))
+	local aim_offset = Vector3(0, 0, AIM_HEIGHT)
 	local max_distance_sq = cfg.max_distance * cfg.max_distance
 	local modes = cfg.modes
 	local num_candidates = 0
@@ -125,6 +134,15 @@ local function _select(element, cfg)
 				end
 
 				if accepted then
+					if camera then
+						local to_unit = position + aim_offset - camera_position
+						local length = Vector3.length(to_unit)
+						local cos_angle = length > 0 and Vector3.dot(camera_forward, to_unit) / length or 1
+						local factor = 1 + AIM_WEIGHT * (1 - cos_angle)
+
+						distance_sq = distance_sq * factor * factor
+					end
+
 					if _markers[unit] then
 						distance_sq = distance_sq * KEEP_BONUS
 					end

@@ -62,6 +62,7 @@ local function _read_settings()
 		show_health_number = mod:get("show_health_number") == true,
 		show_name = mod:get("show_name") == true,
 		line_of_sight = mod:get("line_of_sight") ~= false,
+		prioritize_aim = mod:get("prioritize_aim") ~= false,
 		max_distance = mod:get("max_distance") or 25,
 		max_markers = mod:get("max_markers") or 20,
 	}

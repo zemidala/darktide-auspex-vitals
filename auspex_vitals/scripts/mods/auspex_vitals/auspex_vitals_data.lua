@@ -54,6 +54,7 @@ return {
 				setting_id = "group_performance",
 				type = "group",
 				sub_widgets = {
+					{ setting_id = "prioritize_aim", type = "checkbox", default_value = true },
 					{
 						setting_id = "max_distance",
 						type = "numeric",

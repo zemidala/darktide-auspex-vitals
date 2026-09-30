@@ -14,6 +14,7 @@ local BAR_HEIGHT = 5
 local MAX_WIDTH = 140
 local FONT_TYPE = "proxima_nova_bold"
 local SMALL_FONT_SIZE = 14
+local NUM_TICKS = 3 -- деления на 25, 50 и 75 %
 
 local WIDTH_BY_CATEGORY = {
 	horde = 60,
@@ -101,6 +102,9 @@ template.create_widget_defintion = function (template, scenegraph_id)
 		_rect("background", { 0, 0, 1 }, { MAX_WIDTH, BAR_HEIGHT }, { 160, 20, 20, 20 }),
 		_rect("ghost_bar", { 0, 0, 2 }, { 0, BAR_HEIGHT }, { 255, 240, 200, 200 }),
 		_rect("bar", { 0, 0, 3 }, { 0, BAR_HEIGHT }, { 255, 200, 40, 40 }),
+		_rect("tick_1", { 0, 0, 5 }, { 1, BAR_HEIGHT }, { 170, 0, 0, 0 }),
+		_rect("tick_2", { 0, 0, 5 }, { 1, BAR_HEIGHT }, { 170, 0, 0, 0 }),
+		_rect("tick_3", { 0, 0, 5 }, { 1, BAR_HEIGHT }, { 170, 0, 0, 0 }),
 		_text("name_text", { -MAX_WIDTH, -22, 4 }, { MAX_WIDTH * 2, 20 }, SMALL_FONT_SIZE, "center", "bottom"),
 		_text("health_text", { 0, -7, 4 }, { 80, 20 }, SMALL_FONT_SIZE, "left", "center"),
 	}
@@ -162,6 +166,10 @@ local function _layout_bar(style, width, health_fraction, ghost_fraction, spacin
 
 	style.background.offset[1] = left + width - background_width
 	style.background.size[1] = background_width
+
+	for i = 1, NUM_TICKS do
+		style["tick_" .. i].offset[1] = math.floor(left + width * i / (NUM_TICKS + 1))
+	end
 end
 
 local function _layout_dots(widget, marker, show)

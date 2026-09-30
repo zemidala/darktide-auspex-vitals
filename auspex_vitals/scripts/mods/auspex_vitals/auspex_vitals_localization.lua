@@ -107,6 +107,14 @@ return {
 		en = "Max bars at once",
 		ru = "Полос одновременно",
 	},
+	prioritize_aim = {
+		en = "Prioritize crosshair",
+		ru = "Приоритет по прицелу",
+	},
+	prioritize_aim_description = {
+		en = "When there are more enemies than bars, bars go to the ones closer to the crosshair, not just the nearest.",
+		ru = "Если врагов больше, чем полос, полосы получают те, кто ближе к прицелу, а не просто ближайшие.",
+	},
 	max_markers_description = {
 		en = "Nearest enemies get bars first. Fewer bars — less load.",
 		ru = "Полосы получают ближайшие враги. Чем меньше полос, тем меньше нагрузка.",
