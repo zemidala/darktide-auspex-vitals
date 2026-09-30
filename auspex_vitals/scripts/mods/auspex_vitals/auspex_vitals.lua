@@ -133,9 +133,17 @@ end)
 mod.on_all_mods_loaded = function ()
 	mod:info("loaded")
 
-	local healthbars = get_mod("Healthbars")
+	-- моды со своими полосами над врагами: вместе с нами у врага будет две полосы
+	local other_bars = {
+		Healthbars = "Healthbars",
+		enemies_improved = "Enemies Improved",
+	}
 
-	if healthbars and healthbars:is_enabled() then
-		mod:echo(mod:localize("warning_healthbars"))
+	for mod_id, title in pairs(other_bars) do
+		local other = get_mod(mod_id)
+
+		if other and other:is_enabled() then
+			mod:echo(mod:localize("warning_other_bars", title))
+		end
 	end
 end

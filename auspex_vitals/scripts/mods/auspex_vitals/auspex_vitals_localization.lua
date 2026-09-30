@@ -112,8 +112,8 @@ return {
 		ru = "Полосы получают ближайшие враги. Чем меньше полос, тем меньше нагрузка.",
 	},
 
-	warning_healthbars = {
-		en = "Healthbars mod is enabled too: enemies may get two bars.",
-		ru = "Включён ещё и мод Healthbars: у врагов могут быть две полосы.",
+	warning_other_bars = {
+		en = "%s mod is enabled too: enemies may get two health bars.",
+		ru = "Включён ещё и мод %s: у врагов могут быть две полосы здоровья.",
 	},
 }
