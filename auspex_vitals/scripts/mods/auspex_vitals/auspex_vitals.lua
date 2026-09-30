@@ -66,6 +66,7 @@ local function _read_settings()
 		show_health_number = mod:get("show_health_number") == true,
 		show_name = mod:get("show_name") == true,
 		line_of_sight = mod:get("line_of_sight") ~= false,
+		hide_game_damage_indicator = mod:get("hide_game_damage_indicator") == true,
 		show_bosses_with_game_bar = mod:get("show_bosses_with_game_bar") ~= false,
 		prioritize_aim = mod:get("prioritize_aim") ~= false,
 		max_distance = mod:get("max_distance") or 25,
@@ -77,6 +78,51 @@ local function _read_settings()
 end
 
 _read_settings()
+
+-- Индикатор урона игры (damage_indicator): полоса, тип брони, цифры урона.
+-- Игра вешает его на врагов тренировочных сценариев Психаниума.
+local GAME_DAMAGE_INDICATOR = "damage_indicator"
+
+local function _skip_marker(marker_type)
+	return marker_type == GAME_DAMAGE_INDICATOR and mod.cfg.hide_game_damage_indicator and mod:is_enabled()
+end
+
+-- снять уже поставленные индикаторы игры, когда настройку включили
+local function _remove_game_damage_indicators()
+	local element = Tracker.element()
+	local markers = element and mod.cfg.hide_game_damage_indicator and element._markers_by_type
+	local indicators = markers and markers[GAME_DAMAGE_INDICATOR]
+
+	if not indicators then
+		return
+	end
+
+	local ids = {}
+
+	for i = 1, #indicators do
+		ids[i] = indicators[i].id
+	end
+
+	for i = 1, #ids do
+		element:event_remove_world_marker(ids[i])
+	end
+end
+
+mod:hook("HudElementWorldMarkers", "event_add_world_marker_unit", function (func, self, marker_type, ...)
+	if _skip_marker(marker_type) then
+		return
+	end
+
+	return func(self, marker_type, ...)
+end)
+
+mod:hook("HudElementWorldMarkers", "event_add_world_marker_position", function (func, self, marker_type, ...)
+	if _skip_marker(marker_type) then
+		return
+	end
+
+	return func(self, marker_type, ...)
+end)
 
 mod.on_setting_changed = function (setting_id)
 	if setting_id == "preset" then
@@ -92,6 +138,7 @@ mod.on_setting_changed = function (setting_id)
 	_read_settings()
 	-- маркеры с прежними настройками пересоздаст планировщик
 	Tracker.remove_all()
+	_remove_game_damage_indicators()
 end
 
 mod.on_disabled = function ()

@@ -115,6 +115,14 @@ return {
 		ru = "Скрывает полосы врагов, которых не видно. Стоит немного производительности.",
 	},
 
+	hide_game_damage_indicator = {
+		en = "Hide the game's damage indicator",
+		ru = "Скрывать индикатор урона игры",
+	},
+	hide_game_damage_indicator_description = {
+		en = "The game puts its own bar with armor type and damage numbers on enemies in Psykhanium training. On — only our bar stays.",
+		ru = "В тренировках Психаниума игра вешает на врагов свою полосу с типом брони и цифрами урона. Вкл — остаётся только наша полоса.",
+	},
 	group_performance = {
 		en = "Performance",
 		ru = "Производительность",
