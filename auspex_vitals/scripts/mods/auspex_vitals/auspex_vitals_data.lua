@@ -73,6 +73,8 @@ return {
 							{ text = "damage_numbers_floating", value = "floating" },
 							{ text = "damage_numbers_column_right", value = "column_right" },
 							{ text = "damage_numbers_column_left", value = "column_left" },
+							{ text = "damage_numbers_screen_right", value = "screen_right" },
+							{ text = "damage_numbers_screen_left", value = "screen_left" },
 						},
 					},
 					{

@@ -4,7 +4,8 @@
 -- а переиспользуются.
 -- Стили (настройка damage_numbers_style):
 --   floating      — у точки попадания, всплывают вверх (у добивающего удара юнит врага может не прийти);
---   column_right / column_left — столбцом сбоку от врага: новое число у врага, старые сдвигаются вверх.
+--   column_right / column_left — столбцом сбоку от врага: новое число у врага, старые сдвигаются вверх;
+--   screen_right / screen_left — одна лента сбоку от прицела, не привязана к врагам.
 
 local mod = get_mod("auspex_vitals")
 local Status = mod.av_status
@@ -17,6 +18,20 @@ local DURATION_COLUMN = 1.8 -- в столбце числа живут доль�
 local ROW_SPACING = 1.1 -- высота строки столбца в размерах шрифта
 local TEXT_BOX_WIDTH = 240
 local TEXT_BOX_HEIGHT = 60
+-- для ленты у прицела маркер держим в этой точке перед камерой, чтобы движок его рисовал
+local SCREEN_ANCHOR_DISTANCE = 5
+
+local STYLE_KINDS = {
+	floating = "floating",
+	column_right = "column",
+	column_left = "column",
+	screen_right = "screen",
+	screen_left = "screen",
+}
+local RIGHT_STYLES = {
+	column_right = true,
+	screen_right = true,
+}
 local FADE_START = 0.6 -- доля времени жизни, после которой цифра гаснет
 local RISE = 45 -- на сколько пикселей цифра поднимается за время жизни
 local JITTER = 25 -- случайный сдвиг по горизонтали, чтобы цифры не слипались
@@ -104,14 +119,14 @@ local function _head_position(unit)
 	return Unit.world_position(unit, 1) + Vector3(0, 0, HEAD_HEIGHT)
 end
 
--- Номер строки в столбце: сколько чисел того же врага новее этого.
-local function _column_row(slot)
+-- Номер строки: сколько чисел новее этого — у того же врага (столбец) или вообще (лента у прицела).
+local function _column_row(slot, any_unit)
 	local row = 0
 
 	for i = 1, POOL_SIZE do
 		local other = _slots[i]
 
-		if other ~= slot and other.active and other.anchor_unit ~= nil and other.anchor_unit == slot.anchor_unit then
+		if other ~= slot and other.active and (any_unit or other.anchor_unit ~= nil and other.anchor_unit == slot.anchor_unit) then
 			if other.start_t > slot.start_t or (other.start_t == slot.start_t and other.index > slot.index) then
 				row = row + 1
 			end
@@ -133,7 +148,8 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 
 	local cfg = mod.cfg
 	local style_name = cfg and cfg.damage_numbers_style or "floating"
-	local is_column = style_name ~= "floating"
+	local kind = STYLE_KINDS[style_name] or "floating"
+	local is_column = kind ~= "floating"
 	local duration = is_column and DURATION_COLUMN or DURATION
 	local age = t - slot.start_t
 
@@ -154,17 +170,38 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 	text_color[2], text_color[3], text_color[4] = color[2], color[3], color[4]
 	style.font_size = (slot.crit and CRIT_FONT_SIZE or FONT_SIZE) * scale
 
+	if kind == "screen" then
+		local camera = parent._player_camera
+
+		if not camera then
+			content.text = ""
+
+			return
+		end
+
+		-- точка на оси взгляда проецируется в центр экрана: считаем её сами в этом кадре
+		-- (так же, как движок в _calculate_markers), чтобы лента не дёргалась при повороте
+		local anchor = Camera.local_position(camera) + Quaternion.forward(Camera.local_rotation(camera)) * SCREEN_ANCHOR_DISTANCE
+		local x, y = parent:_convert_world_to_screen_position(camera, anchor)
+		local screen_x, screen_y = parent:_get_screen_offset(ui_renderer.scale)
+		local widget_offset = widget.offset
+
+		widget_offset[1] = (x - screen_x) * ui_renderer.inverse_scale
+		widget_offset[2] = (y - screen_y) * ui_renderer.inverse_scale
+		marker.world_position:store(anchor)
+	end
+
 	if is_column then
 		local unit = slot.anchor_unit
 
 		-- столбец едет за врагом
-		if unit and ALIVE[unit] then
+		if kind == "column" and unit and ALIVE[unit] then
 			marker.world_position:store(_head_position(unit))
 		end
 
-		local row = unit and _column_row(slot) or 0
-		local is_right = style_name == "column_right"
-		-- отступ от центра врага — настройка, чтобы модель не закрывала цифры
+		local row = (kind == "screen" or unit) and _column_row(slot, kind == "screen") or 0
+		local is_right = RIGHT_STYLES[style_name] == true
+		-- отступ от центра врага или прицела — настройка, чтобы модель не закрывала цифры
 		local gap = cfg.damage_numbers_column_offset or 120
 
 		style.text_horizontal_alignment = is_right and "left" or "right"
@@ -308,11 +345,15 @@ function DamageNumbers.on_attack_result(attacked_unit, attacking_unit, hit_world
 	end
 
 	local position = hit_world_position
-	local is_column = cfg.damage_numbers_style ~= "floating"
+	local kind = STYLE_KINDS[cfg.damage_numbers_style] or "floating"
 	local unit_alive = attacked_unit and ALIVE[attacked_unit]
+	local camera = kind == "screen" and _element and _element._player_camera
 
-	-- у эффектов нет точки попадания; в столбце числа стоят у врага
-	if is_dot or is_column or not position then
+	if camera then
+		-- лента у прицела: позицию каждый кадр задаёт шаблон, здесь нужна любая видимая точка
+		position = Camera.local_position(camera) + Quaternion.forward(Camera.local_rotation(camera)) * SCREEN_ANCHOR_DISTANCE
+	elseif is_dot or kind == "column" or not position then
+		-- у эффектов нет точки попадания; в столбце числа стоят у врага
 		if unit_alive then
 			position = _head_position(attacked_unit)
 		elseif is_dot or not position then

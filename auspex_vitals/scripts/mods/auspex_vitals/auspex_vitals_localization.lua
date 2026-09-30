@@ -140,8 +140,8 @@ return {
 		ru = "Стиль",
 	},
 	damage_numbers_style_description = {
-		en = "At the hit point — numbers pop up where you hit and float up. Column — numbers stack next to the enemy: the newest at the bottom, older ones move up.",
-		ru = "У точки попадания — цифры появляются там, куда попали, и всплывают. Столбцом — цифры встают рядом с врагом: новая внизу, старые сдвигаются вверх.",
+		en = "At the hit point — numbers pop up where you hit and float up. Column — numbers stack next to the enemy: the newest at the bottom, older ones move up. Feed — one list next to the crosshair for all your damage, not tied to enemies.",
+		ru = "У точки попадания — цифры появляются там, куда попали, и всплывают. Столбцом — цифры встают рядом с врагом: новая внизу, старые сдвигаются вверх. Лентой — один список рядом с прицелом для всего вашего урона, без привязки к врагам.",
 	},
 	damage_numbers_floating = {
 		en = "At the hit point",
@@ -155,6 +155,14 @@ return {
 		en = "Column to the left",
 		ru = "Столбцом слева",
 	},
+	damage_numbers_screen_right = {
+		en = "Feed right of the crosshair",
+		ru = "Лентой справа от прицела",
+	},
+	damage_numbers_screen_left = {
+		en = "Feed left of the crosshair",
+		ru = "Лентой слева от прицела",
+	},
 	damage_numbers_scale = {
 		en = "Size",
 		ru = "Размер",
@@ -164,8 +172,8 @@ return {
 		ru = "Отступ столбца, пикс.",
 	},
 	damage_numbers_column_offset_description = {
-		en = "How far from the enemy's center the column stands. Increase it if the enemy model covers the numbers.",
-		ru = "Насколько далеко от центра врага стоит столбец. Увеличьте, если модель врага закрывает цифры.",
+		en = "How far from the enemy's center (column) or from the crosshair (feed) the numbers stand. Increase it if the enemy model covers the numbers.",
+		ru = "Насколько далеко от центра врага (столбец) или от прицела (лента) стоят цифры. Увеличьте, если модель врага закрывает цифры.",
 	},
 	damage_numbers_dots = {
 		en = "Damage over time",
