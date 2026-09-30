@@ -133,6 +133,11 @@ local function _select(element, cfg)
 					accepted = Status.is_wounded(unit, Status.health_extension(unit))
 				end
 
+				-- у босса в схватке уже есть полоса игры вверху экрана
+				if accepted and category == "boss" and not cfg.show_bosses_with_game_bar then
+					accepted = not Status.has_game_boss_bar(unit)
+				end
+
 				if accepted then
 					if camera then
 						local to_unit = position + aim_offset - camera_position

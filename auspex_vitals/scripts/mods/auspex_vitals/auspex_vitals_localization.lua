@@ -53,6 +53,14 @@ return {
 		en = "Monstrosities and captains",
 		ru = "Чудовища и капитаны",
 	},
+	show_bosses_with_game_bar = {
+		en = "Bosses with the game's bar",
+		ru = "Боссы с полосой игры",
+	},
+	show_bosses_with_game_bar_description = {
+		en = "During a boss fight the game shows its own bar at the top of the screen. Off — our bar over such a boss is hidden.",
+		ru = "Во время схватки с боссом игра показывает свою полосу вверху экрана. Выкл — наша полоса над таким боссом скрывается.",
+	},
 	mode_always = {
 		en = "Always",
 		ru = "Всегда",

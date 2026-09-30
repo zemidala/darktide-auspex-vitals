@@ -38,6 +38,7 @@ return {
 					mode_dropdown("mode_elite", "always"),
 					mode_dropdown("mode_special", "always"),
 					mode_dropdown("mode_boss", "always"),
+					{ setting_id = "show_bosses_with_game_bar", type = "checkbox", default_value = true },
 				},
 			},
 			{

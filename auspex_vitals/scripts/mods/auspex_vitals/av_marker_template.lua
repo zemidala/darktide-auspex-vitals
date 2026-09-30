@@ -137,10 +137,9 @@ template.on_enter = function (widget, marker, template)
 	color[1], color[2], color[3], color[4] = bar_color[1], bar_color[2], bar_color[3], bar_color[4]
 
 	local cfg = mod.cfg
-	local breed = Status.breed(marker.unit)
 
-	if cfg and cfg.show_name and breed and breed.display_name then
-		widget.content.name_text = Localize(breed.display_name)
+	if cfg and cfg.show_name then
+		widget.content.name_text = Status.display_name(marker.unit) or ""
 	end
 end
 
