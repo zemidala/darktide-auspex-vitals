@@ -299,7 +299,8 @@ local function _layout_bar(style, width, health_fraction, ghost_fraction, spacin
 end
 
 -- Кольцо: точка k закрашена цветом здоровья, если на неё приходится оставшееся здоровье,
--- светлым — если «призрачный» урон, тёмным — если потеряно. Заполнение по часовой стрелке от 12 часов.
+-- светлым — если «призрачный» урон, тёмным — если потеряно. Урон «съедает» кольцо по часовой стрелке
+-- от 12 часов, как стрелка таймера: оставшееся здоровье — хвост кольца до 12 часов.
 local function _layout_ring(style, marker, health_fraction, ghost_fraction)
 	local radius = marker.ring_radius
 	local dot = marker.ring_dot
@@ -322,7 +323,7 @@ local function _layout_ring(style, marker, health_fraction, ghost_fraction)
 		size[1] = dot
 		size[2] = dot
 
-		local position = (k - 0.5) / RING_SEGMENTS
+		local position = 1 - (k - 0.5) / RING_SEGMENTS
 		local color = position <= health_fraction and health_color or position <= ghost_fraction and RING_GHOST_COLOR or RING_BACKGROUND_COLOR
 		local ring_color = ring_style.color
 

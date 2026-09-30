@@ -188,6 +188,7 @@ local function _attach(element)
 	templates[Template.name] = Template
 	templates[DamageNumbers.template.name] = DamageNumbers.template
 	templates[IconPreview.template.name] = IconPreview.template
+	templates[IconPreview.ring_template.name] = IconPreview.ring_template
 	Tracker.attach(element)
 	DamageNumbers.attach(element)
 
@@ -221,6 +222,11 @@ end)
 -- /av_icons — показать или скрыть сетку значков эффектов, чтобы выбрать читаемые
 mod:command("av_icons", mod:localize("icon_preview_command"), function ()
 	IconPreview.toggle(Tracker.element())
+end)
+
+-- /av_rings — показать или скрыть круглые материалы игры-кандидаты для кольца здоровья
+mod:command("av_rings", mod:localize("ring_preview_command"), function ()
+	IconPreview.toggle_rings(Tracker.element())
 end)
 
 mod.on_all_mods_loaded = function ()
