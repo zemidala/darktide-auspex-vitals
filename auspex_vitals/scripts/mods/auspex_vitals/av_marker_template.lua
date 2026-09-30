@@ -43,7 +43,7 @@ local VISIBILITY_SPEED = 3
 -- ВРЕМЕННО: диагностика видимости в лог (что закрывает маркер), не чаще раза в DEBUG_INTERVAL на маркер
 local DEBUG_VISIBILITY = true
 local DEBUG_INTERVAL = 2
-local OCCLUSION_INTERVAL = 0.1
+local OCCLUSION_INTERVAL = 0.15
 local OCCLUSION_MARGIN = 0.3 -- метров до полосы, где попадание уже не считается перекрытием
 local OCCLUSION_START = 1 -- луч начинается перед камерой, чтобы не задеть своего персонажа
 local OCCLUSION_MAX_HITS = 16
@@ -303,6 +303,7 @@ template.on_enter = function (widget, marker, template)
 	local unit = marker.unit
 
 	marker.head_node = Unit.has_node(unit, HEAD_NODE) and Unit.node(unit, HEAD_NODE) or nil
+	marker.spine_node = Unit.has_node(unit, "j_spine1") and Unit.node(unit, "j_spine1") or Unit.has_node(unit, "j_spine") and Unit.node(unit, "j_spine") or nil
 
 	-- рост породы с учётом размера этого врага (у миньонов он немного разный)
 	local breed = Status.breed(unit)
@@ -608,37 +609,25 @@ local function _layout_dots(widget, marker, count, scale, shape_width, shape_hei
 	end
 end
 
--- Что закрывает маркер: "wall" — неподвижная геометрия, "enemy" — тело другого врага, nil — ничего.
-local function _blocker(parent, marker, cfg)
-	local camera = parent._player_camera
-	local physics_world = camera and parent:_physics_world()
-
-	if not physics_world then
-		return nil
-	end
-
-	local camera_position = Camera.local_position(camera)
-	local to_bar = marker.position:unbox() - camera_position
-	local direction = Vector3.normalize(to_bar)
-	local distance = Vector3.length(to_bar) - OCCLUSION_MARGIN - OCCLUSION_START
+-- Что закрывает луч от камеры к точке target на теле врага: "wall", "enemy" или nil.
+local function _ray_blocker(physics_world, camera_position, target, marker, cfg)
+	local to_target = target - camera_position
+	local direction = Vector3.normalize(to_target)
+	local distance = Vector3.length(to_target) - OCCLUSION_MARGIN - OCCLUSION_START
 
 	if distance <= 0 then
-		return false
+		return nil
 	end
 
 	local from = camera_position + direction * OCCLUSION_START
 
 	-- стены: только статика, снаряжение врагов (динамика) сюда не попадает
-	if cfg.line_of_sight then
-		local wall_hit = PhysicsWorld.raycast(physics_world, from, direction, distance, "any", "types", "statics", "collision_filter", WALL_FILTER)
-
-		if wall_hit then
-			if DEBUG_VISIBILITY then
-				marker.debug_blocker = string.format("wall at %.1f of %.1f m", Vector3.distance(from, select(2, PhysicsWorld.raycast(physics_world, from, direction, distance, "closest", "types", "statics", "collision_filter", WALL_FILTER)) or from), distance)
-			end
-
-			return "wall"
+	if cfg.line_of_sight and PhysicsWorld.raycast(physics_world, from, direction, distance, "any", "types", "statics", "collision_filter", WALL_FILTER) then
+		if DEBUG_VISIBILITY then
+			marker.debug_blocker = string.format("wall on %.1f m ray", distance)
 		end
+
+		return "wall"
 	end
 
 	if not cfg.hide_behind_enemies then
@@ -657,13 +646,13 @@ local function _blocker(parent, marker, cfg)
 		local actor = hit and hit[HIT_INDEX_ACTOR]
 		local hit_unit = actor and Actor.unit(actor)
 
-		-- закрывать полосу может только другой враг
-		if hit_unit and hit_unit ~= marker.unit then
+		-- закрыть может только другой ЖИВОЙ враг (трупы и снаряжение не считаются)
+		if hit_unit and hit_unit ~= marker.unit and HEALTH_ALIVE[hit_unit] then
 			local breed = Status.breed(hit_unit)
 
 			if breed and breed.breed_type == "minion" then
 				if DEBUG_VISIBILITY then
-					marker.debug_blocker = string.format("enemy %s (alive=%s) hit %d/%d", breed.name, tostring(HEALTH_ALIVE[hit_unit] == true), i, num_hits or #hits)
+					marker.debug_blocker = string.format("enemy %s, hit %d/%d", breed.name, i, num_hits or #hits)
 				end
 
 				return "enemy"
@@ -672,6 +661,40 @@ local function _blocker(parent, marker, cfg)
 	end
 
 	return nil
+end
+
+-- Что закрывает врага: "wall", "enemy" или nil. Как у Enemies Improved, целимся в тело (голову и грудь),
+-- а не в маркер над головой: враг закрыт, только если закрыты обе точки. Стена важнее врага.
+local function _blocker(parent, marker, cfg)
+	local camera = parent._player_camera
+	local physics_world = camera and parent:_physics_world()
+	local unit = marker.unit
+
+	if not physics_world or not ALIVE[unit] then
+		return nil
+	end
+
+	local camera_position = Camera.local_position(camera)
+	local head = Unit.world_position(unit, marker.head_node or 1)
+	local head_blocker = _ray_blocker(physics_world, camera_position, head, marker, cfg)
+
+	if not head_blocker then
+		return nil
+	end
+
+	local spine_node = marker.spine_node
+
+	if not spine_node then
+		return head_blocker
+	end
+
+	local spine_blocker = _ray_blocker(physics_world, camera_position, Unit.world_position(unit, spine_node), marker, cfg)
+
+	if not spine_blocker then
+		return nil
+	end
+
+	return (head_blocker == "wall" or spine_blocker == "wall") and "wall" or "enemy"
 end
 
 -- Прозрачность маркера по видимости: за стеной — плавно в ноль, за другим врагом — до OCCLUDED_ALPHA.
