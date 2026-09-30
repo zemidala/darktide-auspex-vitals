@@ -1,0 +1,9 @@
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Release archives
+/dist/
+*.zip
