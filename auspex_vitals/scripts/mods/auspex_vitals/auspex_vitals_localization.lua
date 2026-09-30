@@ -123,6 +123,26 @@ return {
 		en = "The game puts its own bar with armor type and damage numbers on enemies in Psykhanium training. On — only our bar stays.",
 		ru = "В тренировках Психаниума игра вешает на врагов свою полосу с типом брони и цифрами урона. Вкл — остаётся только наша полоса.",
 	},
+	group_damage_numbers = {
+		en = "Damage numbers",
+		ru = "Цифры урона",
+	},
+	show_damage_numbers = {
+		en = "Show damage numbers",
+		ru = "Показывать цифры урона",
+	},
+	show_damage_numbers_description = {
+		en = "Your damage at the hit point. White — normal, yellow — weakspot, orange — critical. Hits landing together are summed.",
+		ru = "Ваш урон в точке попадания. Белый — обычный, жёлтый — слабое место, оранжевый — крит. Одновременные попадания складываются.",
+	},
+	damage_numbers_dots = {
+		en = "Damage over time",
+		ru = "Периодический урон",
+	},
+	damage_numbers_dots_description = {
+		en = "Burning, bleeding and other effect ticks, summed per enemy within a second.",
+		ru = "Тики горения, кровотечения и других эффектов, сложенные по врагу за секунду.",
+	},
 	group_performance = {
 		en = "Performance",
 		ru = "Производительность",

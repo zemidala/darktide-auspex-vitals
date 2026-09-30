@@ -10,9 +10,11 @@ local SCRIPTS = "auspex_vitals/scripts/mods/auspex_vitals/"
 mod.av_status = mod:io_dofile(SCRIPTS .. "av_status")
 mod.av_marker_template = mod:io_dofile(SCRIPTS .. "av_marker_template")
 mod.av_tracker = mod:io_dofile(SCRIPTS .. "av_tracker")
+mod.av_damage_numbers = mod:io_dofile(SCRIPTS .. "av_damage_numbers")
 
 local Template = mod.av_marker_template
 local Tracker = mod.av_tracker
+local DamageNumbers = mod.av_damage_numbers
 
 local PRESETS = {
 	minimal = {
@@ -22,6 +24,7 @@ local PRESETS = {
 		mode_boss = "always",
 		show_bosses_with_game_bar = false,
 		show_dots = false,
+		show_damage_numbers = false,
 		show_health_number = false,
 		show_name = false,
 		max_distance = 20,
@@ -34,6 +37,7 @@ local PRESETS = {
 		mode_boss = "always",
 		show_bosses_with_game_bar = true,
 		show_dots = true,
+		show_damage_numbers = true,
 		show_health_number = false,
 		show_name = false,
 		max_distance = 25,
@@ -46,6 +50,7 @@ local PRESETS = {
 		mode_boss = "always",
 		show_bosses_with_game_bar = true,
 		show_dots = true,
+		show_damage_numbers = true,
 		show_health_number = true,
 		show_name = true,
 		max_distance = 40,
@@ -67,6 +72,8 @@ local function _read_settings()
 		show_name = mod:get("show_name") == true,
 		line_of_sight = mod:get("line_of_sight") ~= false,
 		hide_game_damage_indicator = mod:get("hide_game_damage_indicator") == true,
+		show_damage_numbers = mod:get("show_damage_numbers") ~= false,
+		damage_numbers_dots = mod:get("damage_numbers_dots") ~= false,
 		show_bosses_with_game_bar = mod:get("show_bosses_with_game_bar") ~= false,
 		prioritize_aim = mod:get("prioritize_aim") ~= false,
 		max_distance = mod:get("max_distance") or 25,
@@ -138,11 +145,13 @@ mod.on_setting_changed = function (setting_id)
 	_read_settings()
 	-- маркеры с прежними настройками пересоздаст планировщик
 	Tracker.remove_all()
+	DamageNumbers.clear()
 	_remove_game_damage_indicators()
 end
 
 mod.on_disabled = function ()
 	Tracker.remove_all()
+	DamageNumbers.clear()
 end
 
 local _warned_no_templates = false
@@ -162,7 +171,9 @@ local function _attach(element)
 	end
 
 	templates[Template.name] = Template
+	templates[DamageNumbers.template.name] = DamageNumbers.template
 	Tracker.attach(element)
+	DamageNumbers.attach(element)
 
 	return true
 end
@@ -171,16 +182,23 @@ mod:hook_safe("HudElementWorldMarkers", "init", function (self)
 	_attach(self)
 end)
 
-mod:hook_safe("HudElementWorldMarkers", "update", function (self, dt)
+mod:hook_safe("HudElementWorldMarkers", "update", function (self, dt, t)
 	if Tracker.element() ~= self and not _attach(self) then
 		return
 	end
 
+	-- общее время для цифр урона: отчёты об атаках приходят без времени
+	DamageNumbers.now = t
 	Tracker.update(self, dt)
 end)
 
 mod:hook_safe("HudElementWorldMarkers", "destroy", function (self)
 	Tracker.detach(self)
+	DamageNumbers.detach(self)
+end)
+
+mod:hook_safe("AttackReportManager", "add_attack_result", function (self, damage_profile, attacked_unit, attacking_unit, attack_direction, hit_world_position, hit_weakspot, damage, attack_result, attack_type, damage_efficiency, is_critical_strike)
+	DamageNumbers.on_attack_result(attacked_unit, attacking_unit, hit_world_position, hit_weakspot, damage, attack_type, is_critical_strike)
 end)
 
 mod.on_all_mods_loaded = function ()

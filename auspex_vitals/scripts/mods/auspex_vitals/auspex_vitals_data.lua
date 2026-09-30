@@ -61,6 +61,14 @@ return {
 				},
 			},
 			{
+				setting_id = "group_damage_numbers",
+				type = "group",
+				sub_widgets = {
+					{ setting_id = "show_damage_numbers", type = "checkbox", default_value = true },
+					{ setting_id = "damage_numbers_dots", type = "checkbox", default_value = true },
+				},
+			},
+			{
 				setting_id = "group_performance",
 				type = "group",
 				sub_widgets = {
