@@ -9,6 +9,11 @@ local HudHealthBarLogic = require("scripts/ui/hud/elements/hud_health_bar_logic"
 local UIWidget = require("scripts/managers/ui/ui_widget")
 
 local MAX_DOTS = 3
+-- иконки периодического урона рисуем материалом иконок баффов игры (как в её панели баффов)
+local ICON_MATERIAL = "content/ui/materials/icons/buffs/hud/buff_container_with_background"
+local ICON_GRADIENT = "content/ui/textures/color_ramps/talent_default"
+local ICON_SIZE = 18
+local DOT_ROW_Y = BAR_HEIGHT + 3
 local DOT_UPDATE_INTERVAL = 0.2
 local BAR_HEIGHT = 7
 -- запас для определения виджета: ширина полосы с учётом настройки масштаба не больше этой
@@ -24,10 +29,6 @@ local OCCLUSION_MARGIN = 0.3 -- метров до полосы, где попа�
 local OCCLUSION_START = 1 -- луч начинается перед камерой, чтобы не задеть своего персонажа
 local OCCLUSION_MAX_HITS = 16
 local HIT_INDEX_ACTOR = 4 -- формат результата PhysicsWorld.raycast "all", как в hit_scan.lua
--- ВРЕМЕННО: диагностика перекрытия в лог, не чаще раза в DEBUG_INTERVAL секунд
-local DEBUG_OCCLUSION = true
-local DEBUG_INTERVAL = 5
-local _debug_next_t = 0
 local OCCLUDED_ALPHA = 0.1
 local OCCLUSION_SPEED = 6
 local NUM_TICKS = 3 -- деления на 25, 50 и 75 %
@@ -126,9 +127,33 @@ template.create_widget_defintion = function (template, scenegraph_id)
 		_text("health_text", { 0, BAR_HEIGHT * 0.5 - 10, 4 }, { 80, 20 }, SMALL_FONT_SIZE, "left", "center"),
 	}
 
+	local icons_available = Status.resource_available("material", ICON_MATERIAL)
+
 	for i = 1, MAX_DOTS do
 		passes[#passes + 1] = _rect("dot_chip_" .. i, { 0, 0, 4 }, { 0, 6 }, { 255, 255, 255, 255 })
 		passes[#passes + 1] = _text("dot_text_" .. i, { 0, 0, 4 }, { 30, 16 }, SMALL_FONT_SIZE, "left", "center")
+
+		if icons_available then
+			local visible_id = "dot_icon_visible_" .. i
+
+			passes[#passes + 1] = {
+				pass_type = "texture",
+				style_id = "dot_icon_" .. i,
+				value = ICON_MATERIAL,
+				style = {
+					offset = { 0, DOT_ROW_Y, 5 },
+					size = { ICON_SIZE, ICON_SIZE },
+					color = { 255, 255, 255, 255 },
+					material_values = {
+						opacity = 1,
+						progress = 1,
+					},
+				},
+				visibility_function = function (content, style)
+					return content[visible_id] == true
+				end,
+			}
+		end
 	end
 
 	return UIWidget.create_definition(passes, scenegraph_id)
@@ -193,40 +218,77 @@ local function _layout_bar(style, width, health_fraction, ghost_fraction, spacin
 	end
 end
 
+-- Иконка эффекта, если её текстура загружена; иначе nil — рисуем цветную метку.
+local function _dot_icon(style, i, dot)
+	local icon = dot.icon
+
+	if not style["dot_icon_" .. i] or not icon then
+		return nil
+	end
+
+	return Status.resource_available("texture", icon) and icon or nil
+end
+
 local function _layout_dots(widget, marker, show)
 	local style = widget.style
 	local content = widget.content
 	local left = -marker.width * 0.5
 	local count = show and marker.dot_count or 0
 	local x = left
+	local gradient = Status.resource_available("texture", ICON_GRADIENT) and ICON_GRADIENT or nil
 
 	for i = 1, MAX_DOTS do
 		local chip_id = "dot_chip_" .. i
 		local text_id = "dot_text_" .. i
+		local icon_id = "dot_icon_" .. i
+		local visible_id = "dot_icon_visible_" .. i
 		local chip_style = style[chip_id]
 		local text_style = style[text_id]
+		local icon_style = style[icon_id]
 
 		if i <= count then
 			local entry = marker.dots[i]
-			local color = entry.dot.color
-			local chip_color = chip_style.color
+			local dot = entry.dot
+			local color = dot.color
+			local icon = _dot_icon(style, i, dot)
+			local text_x
 
-			chip_color[1], chip_color[2], chip_color[3], chip_color[4] = color[1], color[2], color[3], color[4]
-			chip_style.size[1] = 6
-			chip_style.offset[1] = x
-			chip_style.offset[2] = BAR_HEIGHT + 4
+			if icon then
+				local material_values = icon_style.material_values
+
+				-- текстуру меняем только при смене эффекта в этой ячейке
+				if material_values.talent_icon ~= icon then
+					material_values.talent_icon = icon
+					material_values.gradient_map = gradient
+				end
+
+				icon_style.offset[1] = x
+				content[visible_id] = true
+				chip_style.size[1] = 0
+				text_x = x + ICON_SIZE + 2
+			else
+				local chip_color = chip_style.color
+
+				chip_color[1], chip_color[2], chip_color[3], chip_color[4] = color[1], color[2], color[3], color[4]
+				chip_style.size[1] = 6
+				chip_style.offset[1] = x
+				chip_style.offset[2] = DOT_ROW_Y + (ICON_SIZE - 6) * 0.5
+				content[visible_id] = false
+				text_x = x + 8
+			end
 
 			local text_color = text_style.text_color
 
 			text_color[2], text_color[3], text_color[4] = color[2], color[3], color[4]
-			text_style.offset[1] = x + 8
-			text_style.offset[2] = BAR_HEIGHT + 4 - 5
+			text_style.offset[1] = text_x
+			text_style.offset[2] = DOT_ROW_Y + ICON_SIZE * 0.5 - 8
 			content[text_id] = entry.stacks > 0 and tostring(entry.stacks) or ""
 
-			x = x + (entry.stacks > 9 and 30 or 22)
+			x = text_x + (entry.stacks > 9 and 22 or entry.stacks > 0 and 14 or 2)
 		else
 			chip_style.size[1] = 0
 			content[text_id] = ""
+			content[visible_id] = false
 		end
 	end
 end
@@ -255,28 +317,6 @@ local function _is_occluded(parent, marker)
 
 	if not hits then
 		return false
-	end
-
-	if DEBUG_OCCLUSION then
-		local now = Managers.time and Managers.time:time("main") or 0
-
-		if now >= _debug_next_t then
-			_debug_next_t = now + DEBUG_INTERVAL
-
-			local names = {}
-
-			for i = 1, num_hits or #hits do
-				local actor = hits[i] and hits[i][HIT_INDEX_ACTOR]
-				local hit_unit = actor and Actor.unit(actor)
-				local breed = hit_unit and Status.breed(hit_unit)
-
-				names[#names + 1] = hit_unit == marker.unit and "self" or breed and breed.name or tostring(hit_unit)
-			end
-
-			local own_breed = Status.breed(marker.unit)
-
-			mod:info("occlusion ray to %s (%.1f m): %d hits [%s]", own_breed and own_breed.name or "?", distance, num_hits or #hits, table.concat(names, ", "))
-		end
 	end
 
 	for i = 1, num_hits or #hits do

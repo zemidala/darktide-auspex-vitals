@@ -12,27 +12,58 @@ Status.DOTS = {
 		id = "warpfire",
 		keyword = "warpfire_burning",
 		templates = { "warp_fire" },
+		icon = "content/ui/textures/icons/buffs/hud/psyker/psyker_ranged_shots_soulblaze",
 		color = { 255, 90, 200, 255 },
 	},
 	{
 		id = "burning",
 		keyword = "burning",
 		templates = { "flamer_assault", "phosphor_burn" },
+		icon = "content/ui/textures/icons/buffs/hud/states_fire_buff_hud",
 		color = { 255, 255, 140, 30 },
 	},
 	{
 		id = "bleeding",
 		keyword = "bleeding",
 		templates = { "bleed", "bleed_long" },
+		icon = "content/ui/textures/icons/buffs/hud/zealot/zealot_crits_apply_bleed",
 		color = { 255, 220, 30, 30 },
 	},
 	{
 		id = "toxin",
 		keyword = "toxin",
 		templates = { "neurotoxin_interval_buff", "neurotoxin_interval_buff2", "neurotoxin_interval_buff3" },
+		icon = "content/ui/textures/icons/buffs/hud/states_toxic_cloud_buff_hud",
 		color = { 255, 120, 220, 60 },
 	},
 }
+
+-- Загружен ли ресурс сейчас. Иконки и материалы берём из пакетов игры, которые мы не грузим сами:
+-- рисовать незагруженную текстуру нельзя, поэтому без неё показываем цветную метку.
+local _resource_cache = {}
+
+function Status.resource_available(resource_type, path)
+	local key = resource_type .. ":" .. path
+	local available = _resource_cache[key]
+
+	if available == nil then
+		local ok, result = pcall(Application.can_get_resource, resource_type, path)
+
+		available = ok and result == true
+		_resource_cache[key] = available
+
+		if not available then
+			mod:info("%s not loaded, fallback used: %s", resource_type, path)
+		end
+	end
+
+	return available
+end
+
+-- набор загруженных пакетов меняется между хабом и миссией
+function Status.reset_resource_cache()
+	table.clear(_resource_cache)
+end
 
 local BOSS_TAGS = { "monster", "captain", "cultist_captain", "lord" }
 

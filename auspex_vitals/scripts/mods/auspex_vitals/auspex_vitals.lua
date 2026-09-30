@@ -180,6 +180,7 @@ local function _attach(element)
 		return false
 	end
 
+	mod.av_status.reset_resource_cache()
 	templates[Template.name] = Template
 	templates[DamageNumbers.template.name] = DamageNumbers.template
 	Tracker.attach(element)
