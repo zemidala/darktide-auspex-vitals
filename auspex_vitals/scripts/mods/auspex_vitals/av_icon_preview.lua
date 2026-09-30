@@ -12,12 +12,23 @@ local ROW_HEIGHT = 96
 local LABEL_WIDTH = 170
 local ANCHOR_DISTANCE = 5
 local BUFFS = "content/ui/textures/icons/buffs/hud/"
+local FLAT = "content/ui/materials/icons/"
+local MAX_ICONS = 5
 
--- Первый в строке — значок, который мод использует сейчас.
+-- Первый в строке — плоский значок-материал (его мод использует сейчас, красит в цвет эффекта),
+-- дальше — картинки баффов (запасной вариант).
+local function flat(path)
+	return {
+		flat = FLAT .. path,
+	}
+end
+
 local ROWS = {
 	{
 		label = "icon_preview_burning",
+		color = { 255, 255, 140, 30 },
 		icons = {
+			flat("presets/preset_20"),
 			BUFFS .. "states_fire_buff_hud",
 			BUFFS .. "horde_buffs/buff_families/hordes_buff_family_fire",
 			BUFFS .. "horde_buffs/small_buffs/hordes_buff_burning_on_melee_hit",
@@ -26,38 +37,43 @@ local ROWS = {
 	},
 	{
 		label = "icon_preview_warpfire",
+		color = { 255, 170, 110, 255 },
 		icons = {
+			flat("circumstances/havoc/havoc_mutator_ember"),
 			BUFFS .. "psyker/psyker_ranged_shots_soulblaze",
 			BUFFS .. "psyker/psyker_blocking_soulblaze",
 			BUFFS .. "psyker/psyker_soulblaze_reduces_damage_taken",
-			BUFFS .. "states_green_fire_buff_hud",
 		},
 	},
 	{
 		label = "icon_preview_electrocuted",
+		color = { 255, 120, 200, 255 },
 		icons = {
+			flat("presets/preset_11"),
 			BUFFS .. "states_electric_buff_hud",
 			BUFFS .. "horde_buffs/buff_families/hordes_buff_family_electric",
 		},
 	},
 	{
 		label = "icon_preview_bleeding",
+		color = { 255, 220, 30, 30 },
 		icons = {
+			flat("presets/preset_13"),
 			BUFFS .. "zealot/zealot_crits_apply_bleed",
 			BUFFS .. "ogryn/ogryn_nearby_bleeds_reduce_damage_taken",
 		},
 	},
 	{
 		label = "icon_preview_toxin",
+		color = { 255, 120, 220, 60 },
 		icons = {
+			flat("circumstances/havoc/havoc_mutator_nurgle"),
 			BUFFS .. "states_toxic_cloud_buff_hud",
 			BUFFS .. "broker/broker_damage_after_toxined_enemies",
 			BUFFS .. "broker/broker_toughness_on_toxined_kill",
 		},
 	},
 }
-
-local MAX_ICONS = 4
 
 local Preview = {}
 
@@ -106,9 +122,27 @@ template.create_widget_defintion = function (template, scenegraph_id)
 
 		for icon_index, icon in ipairs(row.icons) do
 			local x = x0 + LABEL_WIDTH + (icon_index - 1) * CELL_WIDTH
-			local loaded = material_available and Status.resource_available("texture", icon)
+			local loaded
 
-			if loaded then
+			if type(icon) == "table" then
+				loaded = Status.resource_available("material", icon.flat)
+
+				if loaded then
+					passes[#passes + 1] = {
+						pass_type = "texture",
+						value = icon.flat,
+						style = {
+							offset = { x, y, 2 },
+							size = { ICON_SIZE, ICON_SIZE },
+							color = table.clone(row.color),
+						},
+					}
+				end
+			else
+				loaded = material_available and Status.resource_available("texture", icon)
+			end
+
+			if loaded and type(icon) ~= "table" then
 				passes[#passes + 1] = {
 					pass_type = "texture",
 					value = Status.ICON_MATERIAL,

@@ -130,8 +130,24 @@ template.create_widget_defintion = function (template, scenegraph_id)
 	local icons_available = Status.resource_available("material", ICON_MATERIAL)
 
 	for i = 1, MAX_DOTS do
+		local flat_id = "dot_flat_" .. i
+
 		passes[#passes + 1] = _rect("dot_chip_" .. i, { 0, 0, 4 }, { 0, 6 }, { 255, 255, 255, 255 })
 		passes[#passes + 1] = _text("dot_text_" .. i, { 0, 0, 4 }, { 30, 16 }, SMALL_FONT_SIZE, "left", "center")
+		-- плоский значок: материал задаётся через content[flat_id], цвет — цвет эффекта
+		passes[#passes + 1] = {
+			pass_type = "texture",
+			style_id = flat_id,
+			value_id = flat_id,
+			style = {
+				offset = { 0, DOT_ROW_Y, 5 },
+				size = { ICON_SIZE, ICON_SIZE },
+				color = { 255, 255, 255, 255 },
+			},
+			visibility_function = function (content, style)
+				return content[flat_id .. "_on"] == true
+			end,
+		}
 
 		if icons_available then
 			local visible_id = "dot_icon_visible_" .. i
@@ -218,15 +234,15 @@ local function _layout_bar(style, width, health_fraction, ghost_fraction, spacin
 	end
 end
 
--- Иконка эффекта, если её текстура загружена; иначе nil — рисуем цветную метку.
-local function _dot_icon(style, i, dot)
-	local icon = dot.icon
+-- Значок эффекта: плоский материал или картинка баффа (если есть проход для неё).
+local function _dot_visual(style, i, dot)
+	local kind, path = Status.dot_visual(dot)
 
-	if not style["dot_icon_" .. i] or not icon then
+	if kind == "buff" and not style["dot_icon_" .. i] then
 		return nil
 	end
 
-	return Status.resource_available("texture", icon) and icon or nil
+	return kind, path
 end
 
 local function _layout_dots(widget, marker, show)
@@ -245,28 +261,42 @@ local function _layout_dots(widget, marker, show)
 		local chip_style = style[chip_id]
 		local text_style = style[text_id]
 		local icon_style = style[icon_id]
+		local flat_id = "dot_flat_" .. i
+		local flat_style = style[flat_id]
 
 		if i <= count then
 			local entry = marker.dots[i]
 			local dot = entry.dot
 			local color = dot.color
-			local icon = _dot_icon(style, i, dot)
+			local kind, path = _dot_visual(style, i, dot)
 			local text_x
 
-			if icon then
+			if kind == "flat" then
+				local flat_color = flat_style.color
+
+				flat_color[2], flat_color[3], flat_color[4] = color[2], color[3], color[4]
+				flat_style.offset[1] = x
+				content[flat_id] = path
+				content[flat_id .. "_on"] = true
+				content[visible_id] = false
+				chip_style.size[1] = 0
+				text_x = x + ICON_SIZE + 2
+			elseif kind == "buff" then
 				local material_values = icon_style.material_values
 
 				-- текстуру меняем только при смене эффекта в этой ячейке
-				if material_values.talent_icon ~= icon then
-					material_values.talent_icon = icon
+				if material_values.talent_icon ~= path then
+					material_values.talent_icon = path
 					material_values.gradient_map = gradient
 				end
 
 				icon_style.offset[1] = x
 				content[visible_id] = true
+				content[flat_id .. "_on"] = false
 				chip_style.size[1] = 0
 				text_x = x + ICON_SIZE + 2
 			else
+				content[flat_id .. "_on"] = false
 				local chip_color = chip_style.color
 
 				chip_color[1], chip_color[2], chip_color[3], chip_color[4] = color[1], color[2], color[3], color[4]
@@ -289,6 +319,7 @@ local function _layout_dots(widget, marker, show)
 			chip_style.size[1] = 0
 			content[text_id] = ""
 			content[visible_id] = false
+			content[flat_id .. "_on"] = false
 		end
 	end
 end

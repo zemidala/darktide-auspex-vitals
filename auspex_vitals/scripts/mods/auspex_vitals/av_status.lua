@@ -13,6 +13,7 @@ Status.DOTS = {
 		id = "warpfire",
 		keywords = { "warpfire_burning" },
 		profiles = { "warpfire" },
+		flat = "content/ui/materials/icons/circumstances/havoc/havoc_mutator_ember",
 		templates = { "warp_fire" },
 		icon = "content/ui/textures/icons/buffs/hud/psyker/psyker_ranged_shots_soulblaze",
 		color = { 255, 170, 110, 255 },
@@ -21,6 +22,7 @@ Status.DOTS = {
 		id = "burning",
 		keywords = { "burning" },
 		profiles = { "burn" },
+		flat = "content/ui/materials/icons/presets/preset_20",
 		templates = { "flamer_assault", "phosphor_burn" },
 		icon = "content/ui/textures/icons/buffs/hud/states_fire_buff_hud",
 		color = { 255, 255, 140, 30 },
@@ -38,6 +40,7 @@ Status.DOTS = {
 		},
 		templates = {},
 		profiles = { "shock", "stun", "chain_light", "electr" },
+		flat = "content/ui/materials/icons/presets/preset_11",
 		icon = "content/ui/textures/icons/buffs/hud/states_electric_buff_hud",
 		color = { 255, 120, 200, 255 },
 	},
@@ -45,6 +48,7 @@ Status.DOTS = {
 		id = "bleeding",
 		keywords = { "bleeding" },
 		profiles = { "bleed" },
+		flat = "content/ui/materials/icons/presets/preset_13",
 		templates = { "bleed", "bleed_long" },
 		icon = "content/ui/textures/icons/buffs/hud/zealot/zealot_crits_apply_bleed",
 		color = { 255, 220, 30, 30 },
@@ -53,6 +57,7 @@ Status.DOTS = {
 		id = "toxin",
 		keywords = { "toxin" },
 		profiles = { "toxin" },
+		flat = "content/ui/materials/icons/circumstances/havoc/havoc_mutator_nurgle",
 		templates = { "neurotoxin_interval_buff", "neurotoxin_interval_buff2", "neurotoxin_interval_buff3", "exploding_toxin_interval_buff" },
 		icon = "content/ui/textures/icons/buffs/hud/states_toxic_cloud_buff_hud",
 		color = { 255, 120, 220, 60 },
@@ -89,6 +94,23 @@ end
 -- Материал иконок баффов игры (как в её панели баффов): картинка — material_values.talent_icon.
 Status.ICON_MATERIAL = "content/ui/materials/icons/buffs/hud/buff_container_with_background"
 Status.ICON_GRADIENT = "content/ui/textures/color_ramps/talent_default"
+
+-- Как рисовать значок эффекта:
+--   "flat", путь — плоский одноцветный значок-материал игры, красим в цвет эффекта (читается лучше всего;
+--                  те же значки выбрали Healthbars, Enemies Improved и DivisionHUD);
+--   "buff", путь — картинка баффа в материале панели баффов (запасной вариант);
+--   nil          — ничего не загружено, рисуем цветную метку.
+function Status.dot_visual(dot)
+	if dot.flat and Status.resource_available("material", dot.flat) then
+		return "flat", dot.flat
+	end
+
+	if dot.icon and Status.resource_available("material", Status.ICON_MATERIAL) and Status.resource_available("texture", dot.icon) then
+		return "buff", dot.icon
+	end
+
+	return nil
+end
 
 -- Эффект по имени профиля урона тика (burning, phosphor_burning, warpfire, bleeding, toxin_variant_1,
 -- cryptic_arc_shock_damage...). Сравниваем по подстроке: так переживём новые профили тех же эффектов.

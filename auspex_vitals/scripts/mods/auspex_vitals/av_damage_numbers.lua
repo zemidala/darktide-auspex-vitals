@@ -94,7 +94,22 @@ template.create_widget_defintion = function (template, scenegraph_id)
 		},
 	}
 
-	-- значок эффекта у цифр периодического урона; материал — из пакета игры, без него значков нет
+	-- плоский значок эффекта (основной вариант): материал в content.flat_icon, цвет — цвет эффекта
+	passes[#passes + 1] = {
+		pass_type = "texture",
+		style_id = "flat_icon",
+		value_id = "flat_icon",
+		style = {
+			offset = { 0, 0, 11 },
+			size = { FONT_SIZE, FONT_SIZE },
+			color = { 255, 255, 255, 255 },
+		},
+		visibility_function = function (content, style)
+			return content.flat_icon_on == true
+		end,
+	}
+
+	-- картинка баффа (запасной вариант); материал — из пакета игры, без него значков нет
 	if Status.resource_available("material", Status.ICON_MATERIAL) then
 		passes[#passes + 1] = {
 			pass_type = "texture",
@@ -166,21 +181,47 @@ end
 -- справа от центра — перед числом, слева — после него, у всплывающих — слева от числа.
 local function _layout_icon(widget, slot, text_style, kind, style_name, num_digits)
 	local content = widget.content
-	local icon_style = widget.style.icon
 	local dot = slot.is_dot and slot.dot
-	local icon = dot and icon_style and dot.icon and Status.resource_available("texture", dot.icon) and dot.icon
+	local kind, path
 
-	if not icon then
+	if dot then
+		kind, path = Status.dot_visual(dot)
+	end
+
+	if kind == "buff" and not widget.style.icon then
+		kind = nil
+	end
+
+	if not kind then
 		content.show_icon = false
+		content.flat_icon_on = false
 
 		return
 	end
 
-	local material_values = icon_style.material_values
+	local icon_style
 
-	if material_values.talent_icon ~= icon then
-		material_values.talent_icon = icon
-		material_values.gradient_map = Status.resource_available("texture", Status.ICON_GRADIENT) and Status.ICON_GRADIENT or nil
+	if kind == "flat" then
+		icon_style = widget.style.flat_icon
+
+		local color = dot.color
+		local flat_color = icon_style.color
+
+		flat_color[2], flat_color[3], flat_color[4] = color[2], color[3], color[4]
+		content.flat_icon = path
+		content.flat_icon_on = true
+		content.show_icon = false
+	else
+		icon_style = widget.style.icon
+
+		local material_values = icon_style.material_values
+
+		if material_values.talent_icon ~= path then
+			material_values.talent_icon = path
+			material_values.gradient_map = Status.resource_available("texture", Status.ICON_GRADIENT) and Status.ICON_GRADIENT or nil
+		end
+
+		content.flat_icon_on = false
 	end
 
 	local font_size = text_style.font_size
@@ -205,7 +246,7 @@ local function _layout_icon(widget, slot, text_style, kind, style_name, num_digi
 		icon_offset[1] = text_offset[1] + TEXT_BOX_WIDTH + ICON_GAP
 	end
 
-	content.show_icon = true
+	content.show_icon = kind == "buff"
 end
 
 template.update_function = function (parent, ui_renderer, widget, marker, template, dt, t)
@@ -215,6 +256,7 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 	if not slot.active then
 		content.text = ""
 		content.show_icon = false
+		content.flat_icon_on = false
 
 		return
 	end
@@ -230,6 +272,7 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 		slot.active = false
 		content.text = ""
 		content.show_icon = false
+		content.flat_icon_on = false
 
 		return
 	end
