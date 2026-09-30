@@ -258,7 +258,7 @@ local function _is_occluded(parent, marker)
 	end
 
 	if DEBUG_OCCLUSION then
-		local now = os.clock()
+		local now = Managers.time and Managers.time:time("main") or 0
 
 		if now >= _debug_next_t then
 			_debug_next_t = now + DEBUG_INTERVAL
