@@ -1,5 +1,5 @@
--- Шаблон маркера для HudElementWorldMarkers: тонкая полоса здоровья над врагом,
--- под ней до MAX_DOTS меток периодического урона со стаками.
+-- Шаблон маркера для HudElementWorldMarkers: тонкая полоса или кольцо здоровья над врагом,
+-- под ними до MAX_DOTS меток периодического урона со стаками.
 -- Анимацию «призрачного» урона даёт HudHealthBarLogic из самой игры.
 
 local mod = get_mod("auspex_vitals")
@@ -35,6 +35,22 @@ local HEAD_NODE = "j_head"
 local HEAD_MARGIN = 0.3 -- метров над костью головы
 local DEFAULT_BASE_HEIGHT = 2
 local NUM_TICKS = 3 -- деления на 25, 50 и 75 %
+
+-- Кольцо (настройка bar_style = "ring"): RING_SEGMENTS точек-прямоугольников по окружности,
+-- по RING_SEGMENTS / 4 на четверть; зазор между четвертями — деления 25/50/75 %.
+-- Точки не поворачиваем: при таком размере они сливаются в линию, а материалы не нужны.
+local RING_SEGMENTS = 24
+local RING_QUARTER_GAP = math.rad(10)
+local RING_BACKGROUND_COLOR = { 160, 20, 20, 20 }
+local RING_GHOST_COLOR = { 255, 240, 200, 200 }
+-- радиус и размер точки при масштабе 100 %
+local RING_BY_CATEGORY = {
+	horde = { radius = 13, dot = 3 },
+	elite = { radius = 17, dot = 4 },
+	special = { radius = 17, dot = 4 },
+	boss = { radius = 23, dot = 5 },
+}
+local RING_MAX_DOT = 12
 
 -- ширина полосы при масштабе 100 %
 local WIDTH_BY_CATEGORY = {
@@ -133,6 +149,13 @@ template.create_widget_defintion = function (template, scenegraph_id)
 		_text("health_text", { 0, BAR_HEIGHT * 0.5 - 10, 4 }, { 80, 20 }, SMALL_FONT_SIZE, "left", "center"),
 	}
 
+	-- точки кольца создаём, только если выбран вид «кольцо»: маркеры пересоздаются при смене настроек
+	if mod.cfg and mod.cfg.bar_style == "ring" then
+		for i = 1, RING_SEGMENTS do
+			passes[#passes + 1] = _rect("ring_" .. i, { 0, 0, 3 }, { 0, 0 }, { 255, 255, 255, 255 })
+		end
+	end
+
 	local icons_available = Status.resource_available("material", ICON_MATERIAL)
 
 	for i = 1, MAX_DOTS do
@@ -200,6 +223,29 @@ template.on_enter = function (widget, marker, template)
 	local width_scale = (mod.cfg and mod.cfg.bar_width or 100) / 100
 
 	marker.width = math.min(math.floor((WIDTH_BY_CATEGORY[category] or WIDTH_BY_CATEGORY.horde) * width_scale), MAX_WIDTH)
+	marker.dot_row_y = DOT_ROW_Y
+
+	if widget.style.ring_1 then
+		local ring = RING_BY_CATEGORY[category] or RING_BY_CATEGORY.horde
+
+		marker.is_ring = true
+		marker.ring_radius = ring.radius * width_scale
+		marker.ring_dot = math.min(math.max(math.floor(ring.dot * width_scale + 0.5), 2), RING_MAX_DOT)
+		-- для строки эффектов и числа здоровья кольцо — это «полоса» шириной в диаметр
+		marker.width = math.floor(marker.ring_radius * 2 + marker.ring_dot)
+		marker.dot_row_y = marker.ring_radius * 2 + marker.ring_dot + 3
+
+		-- части полосы в виде «кольцо» не нужны
+		local style = widget.style
+
+		style.background.size[1] = 0
+		style.ghost_bar.size[1] = 0
+		style.bar.size[1] = 0
+
+		for i = 1, NUM_TICKS do
+			style["tick_" .. i].size[1] = 0
+		end
+	end
 	marker.dots = {}
 	marker.dot_count = 0
 	marker.dot_timer = 0
@@ -215,6 +261,7 @@ template.on_enter = function (widget, marker, template)
 	local color = widget.style.bar.color
 
 	color[1], color[2], color[3], color[4] = bar_color[1], bar_color[2], bar_color[3], bar_color[4]
+	marker.bar_color = bar_color
 
 	local cfg = mod.cfg
 
@@ -251,6 +298,38 @@ local function _layout_bar(style, width, health_fraction, ghost_fraction, spacin
 	end
 end
 
+-- Кольцо: точка k закрашена цветом здоровья, если на неё приходится оставшееся здоровье,
+-- светлым — если «призрачный» урон, тёмным — если потеряно. Заполнение по часовой стрелке от 12 часов.
+local function _layout_ring(style, marker, health_fraction, ghost_fraction)
+	local radius = marker.ring_radius
+	local dot = marker.ring_dot
+	local center_y = radius + dot * 0.5
+	local per_quarter = RING_SEGMENTS / 4
+	local quarter_arc = math.pi * 0.5 - RING_QUARTER_GAP
+	local health_color = marker.bar_color
+
+	for k = 1, RING_SEGMENTS do
+		local ring_style = style["ring_" .. k]
+		local quarter = math.floor((k - 1) / per_quarter)
+		local index_in_quarter = (k - 1) % per_quarter
+		local angle = quarter * math.pi * 0.5 + RING_QUARTER_GAP * 0.5 + (index_in_quarter + 0.5) * quarter_arc / per_quarter
+		local offset = ring_style.offset
+		local size = ring_style.size
+
+		-- угол от 12 часов по часовой стрелке; y экрана растёт вниз
+		offset[1] = math.floor(math.sin(angle) * radius - dot * 0.5 + 0.5)
+		offset[2] = math.floor(center_y - math.cos(angle) * radius - dot * 0.5 + 0.5)
+		size[1] = dot
+		size[2] = dot
+
+		local position = (k - 0.5) / RING_SEGMENTS
+		local color = position <= health_fraction and health_color or position <= ghost_fraction and RING_GHOST_COLOR or RING_BACKGROUND_COLOR
+		local ring_color = ring_style.color
+
+		ring_color[1], ring_color[2], ring_color[3], ring_color[4] = color[1], color[2], color[3], color[4]
+	end
+end
+
 -- Значок эффекта: плоский материал или картинка баффа (если есть проход для неё).
 local function _dot_visual(style, i, dot)
 	local kind, path = Status.dot_visual(dot)
@@ -268,6 +347,7 @@ local function _layout_dots(widget, marker, show)
 	local left = -marker.width * 0.5
 	local count = show and marker.dot_count or 0
 	local x = left
+	local row_y = marker.dot_row_y or DOT_ROW_Y
 	local gradient = Status.resource_available("texture", ICON_GRADIENT) and ICON_GRADIENT or nil
 
 	for i = 1, MAX_DOTS do
@@ -293,6 +373,7 @@ local function _layout_dots(widget, marker, show)
 
 				flat_color[2], flat_color[3], flat_color[4] = color[2], color[3], color[4]
 				flat_style.offset[1] = x
+				flat_style.offset[2] = row_y
 				content[flat_id] = path
 				content[flat_id .. "_on"] = true
 				content[visible_id] = false
@@ -308,6 +389,7 @@ local function _layout_dots(widget, marker, show)
 				end
 
 				icon_style.offset[1] = x
+				icon_style.offset[2] = row_y
 				content[visible_id] = true
 				content[flat_id .. "_on"] = false
 				chip_style.size[1] = 0
@@ -319,7 +401,7 @@ local function _layout_dots(widget, marker, show)
 				chip_color[1], chip_color[2], chip_color[3], chip_color[4] = color[1], color[2], color[3], color[4]
 				chip_style.size[1] = 6
 				chip_style.offset[1] = x
-				chip_style.offset[2] = DOT_ROW_Y + (ICON_SIZE - 6) * 0.5
+				chip_style.offset[2] = row_y + (ICON_SIZE - 6) * 0.5
 				content[visible_id] = false
 				text_x = x + 8
 			end
@@ -328,7 +410,7 @@ local function _layout_dots(widget, marker, show)
 
 			text_color[2], text_color[3], text_color[4] = color[2], color[3], color[4]
 			text_style.offset[1] = text_x
-			text_style.offset[2] = DOT_ROW_Y + ICON_SIZE * 0.5 - 8
+			text_style.offset[2] = row_y + ICON_SIZE * 0.5 - 8
 			content[text_id] = entry.stacks > 0 and tostring(entry.stacks) or ""
 
 			x = text_x + (entry.stacks > 9 and 22 or entry.stacks > 0 and 14 or 2)
@@ -449,7 +531,12 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 	local health_fraction, ghost_fraction = bar_logic:animated_health_fractions()
 
 	if health_fraction and ghost_fraction then
-		_layout_bar(style, marker.width, health_fraction, ghost_fraction, template.bar_settings.bar_spacing)
+		if marker.is_ring then
+			_layout_ring(style, marker, health_fraction, ghost_fraction)
+		else
+			_layout_bar(style, marker.width, health_fraction, ghost_fraction, template.bar_settings.bar_spacing)
+		end
+
 		marker.health_fraction = health_fraction
 	end
 
@@ -481,6 +568,8 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 		local health = Status.current_health(health_extension)
 
 		style.health_text.offset[1] = marker.width * 0.5 + 4
+		-- у кольца число — справа по центру кольца, у полосы — справа от полосы
+		style.health_text.offset[2] = marker.is_ring and marker.ring_radius + marker.ring_dot * 0.5 - 10 or BAR_HEIGHT * 0.5 - 10
 		content.health_text = health and string.format("%d", math.ceil(health)) or ""
 	else
 		content.health_text = ""

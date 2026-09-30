@@ -45,6 +45,15 @@ return {
 				type = "group",
 				sub_widgets = {
 					{
+						setting_id = "bar_style",
+						type = "dropdown",
+						default_value = "bar",
+						options = {
+							{ text = "bar_style_bar", value = "bar" },
+							{ text = "bar_style_ring", value = "ring" },
+						},
+					},
+					{
 						setting_id = "bar_width",
 						type = "numeric",
 						default_value = 100,

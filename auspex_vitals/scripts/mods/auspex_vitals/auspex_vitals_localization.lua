@@ -70,13 +70,29 @@ return {
 		en = "Display",
 		ru = "Отображение",
 	},
+	bar_style = {
+		en = "Health display",
+		ru = "Вид здоровья",
+	},
+	bar_style_description = {
+		en = "Bar — a thin bar over the enemy. Ring — a compact ring that fills clockwise; takes less space in a crowd.",
+		ru = "Полоса — тонкая полоса над врагом. Кольцо — компактное кольцо, заполняется по часовой стрелке; в толпе занимает меньше места.",
+	},
+	bar_style_bar = {
+		en = "Bar",
+		ru = "Полоса",
+	},
+	bar_style_ring = {
+		en = "Ring",
+		ru = "Кольцо",
+	},
 	bar_width = {
-		en = "Bar width",
-		ru = "Ширина полос",
+		en = "Bar width / ring size",
+		ru = "Ширина полос / размер колец",
 	},
 	bar_width_description = {
-		en = "Base width: horde 100, elites and specialists 140, bosses 190 pixels.",
-		ru = "Базовая ширина: орда 100, элита и специалисты 140, боссы 190 пикселей.",
+		en = "Base bar width: horde 100, elites and specialists 140, bosses 190 pixels. Base ring diameter: 26, 34 and 46 pixels.",
+		ru = "Базовая ширина полосы: орда 100, элита и специалисты 140, боссы 190 пикселей. Базовый диаметр кольца: 26, 34 и 46 пикселей.",
 	},
 	bar_height_offset = {
 		en = "Bar height offset, cm",
