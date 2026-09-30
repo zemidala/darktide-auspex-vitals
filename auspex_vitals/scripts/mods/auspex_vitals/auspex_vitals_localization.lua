@@ -220,6 +220,38 @@ return {
 		ru = "Полосы получают ближайшие враги. Чем меньше полос, тем меньше нагрузка.",
 	},
 
+	icon_preview_command = {
+		en = "Show or hide the effect icon preview",
+		ru = "Показать или скрыть просмотр значков эффектов",
+	},
+	icon_preview_no_hud = {
+		en = "Icon preview works only in a mission or the Psykhanium.",
+		ru = "Просмотр значков работает только на миссии или в Психаниуме.",
+	},
+	icon_preview_not_loaded = {
+		en = "not loaded",
+		ru = "не загружен",
+	},
+	icon_preview_burning = {
+		en = "Burning",
+		ru = "Горение",
+	},
+	icon_preview_warpfire = {
+		en = "Warpfire",
+		ru = "Варп-огонь",
+	},
+	icon_preview_electrocuted = {
+		en = "Electrocution",
+		ru = "Электрошок",
+	},
+	icon_preview_bleeding = {
+		en = "Bleeding",
+		ru = "Кровотечение",
+	},
+	icon_preview_toxin = {
+		en = "Toxin",
+		ru = "Токсин",
+	},
 	warning_other_numbers = {
 		en = "%s mod is enabled too: its damage numbers will mix with ours.",
 		ru = "Включён ещё и мод %s: его цифры урона смешаются с нашими.",

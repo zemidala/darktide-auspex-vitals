@@ -11,10 +11,12 @@ mod.av_status = mod:io_dofile(SCRIPTS .. "av_status")
 mod.av_marker_template = mod:io_dofile(SCRIPTS .. "av_marker_template")
 mod.av_tracker = mod:io_dofile(SCRIPTS .. "av_tracker")
 mod.av_damage_numbers = mod:io_dofile(SCRIPTS .. "av_damage_numbers")
+mod.av_icon_preview = mod:io_dofile(SCRIPTS .. "av_icon_preview")
 
 local Template = mod.av_marker_template
 local Tracker = mod.av_tracker
 local DamageNumbers = mod.av_damage_numbers
+local IconPreview = mod.av_icon_preview
 
 local PRESETS = {
 	minimal = {
@@ -183,6 +185,7 @@ local function _attach(element)
 	mod.av_status.reset_resource_cache()
 	templates[Template.name] = Template
 	templates[DamageNumbers.template.name] = DamageNumbers.template
+	templates[IconPreview.template.name] = IconPreview.template
 	Tracker.attach(element)
 	DamageNumbers.attach(element)
 
@@ -206,10 +209,16 @@ end)
 mod:hook_safe("HudElementWorldMarkers", "destroy", function (self)
 	Tracker.detach(self)
 	DamageNumbers.detach(self)
+	IconPreview.detach()
 end)
 
 mod:hook_safe("AttackReportManager", "add_attack_result", function (self, damage_profile, attacked_unit, attacking_unit, attack_direction, hit_world_position, hit_weakspot, damage, attack_result, attack_type, damage_efficiency, is_critical_strike)
 	DamageNumbers.on_attack_result(damage_profile, attacked_unit, attacking_unit, hit_world_position, hit_weakspot, damage, attack_type, is_critical_strike)
+end)
+
+-- /av_icons — показать или скрыть сетку значков эффектов, чтобы выбрать читаемые
+mod:command("av_icons", mod:localize("icon_preview_command"), function ()
+	IconPreview.toggle(Tracker.element())
 end)
 
 mod.on_all_mods_loaded = function ()
