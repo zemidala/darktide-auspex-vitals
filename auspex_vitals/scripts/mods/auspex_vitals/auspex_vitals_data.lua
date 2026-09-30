@@ -70,6 +70,7 @@ return {
 						range = { -100, 150 },
 						decimals_number = 0,
 					},
+					{ setting_id = "shrink_with_distance", type = "checkbox", default_value = true },
 					{ setting_id = "show_dots", type = "checkbox", default_value = true },
 					{ setting_id = "dot_center", type = "checkbox", default_value = false },
 					{ setting_id = "show_health_number", type = "checkbox", default_value = false },

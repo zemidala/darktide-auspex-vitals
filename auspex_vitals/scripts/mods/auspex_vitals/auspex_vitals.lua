@@ -70,6 +70,7 @@ local function _read_settings()
 		bar_style = mod:get("bar_style") or "bar",
 		dot_center = mod:get("dot_center") == true,
 		bar_height_offset = mod:get("bar_height_offset") or 0,
+		shrink_with_distance = mod:get("shrink_with_distance") ~= false,
 		show_health_number = mod:get("show_health_number") == true,
 		show_name = mod:get("show_name") == true,
 		line_of_sight = mod:get("line_of_sight") ~= false,

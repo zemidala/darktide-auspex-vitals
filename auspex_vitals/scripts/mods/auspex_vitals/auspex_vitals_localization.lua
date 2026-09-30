@@ -122,6 +122,14 @@ return {
 		en = "Burning, warpfire, electrocution, bleeding and toxin under the bar, with stack counts where the effect stacks.",
 		ru = "Горение, варп-огонь, электрошок, кровотечение и токсин под полосой, с числом стаков, если эффект стакается.",
 	},
+	shrink_with_distance = {
+		en = "Shrink with distance",
+		ru = "Уменьшать с расстоянием",
+	},
+	shrink_with_distance_description = {
+		en = "Full size up to 6 m, then smoothly down to 55% at the max distance — so far bars don't cover small enemy models.",
+		ru = "Полный размер до 6 м, дальше плавно до 55% на пределе дальности — чтобы у дальних врагов значки не закрывали маленькую модель.",
+	},
 	dot_center = {
 		en = "Main effect in the center",
 		ru = "Главный эффект в центре",

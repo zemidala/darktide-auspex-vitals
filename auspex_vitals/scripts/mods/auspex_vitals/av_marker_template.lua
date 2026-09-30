@@ -1,6 +1,9 @@
--- Шаблон маркера для HudElementWorldMarkers: тонкая полоса или кольцо здоровья над врагом,
--- под ними до MAX_DOTS меток периодического урона со стаками.
--- Анимацию «призрачного» урона даёт HudHealthBarLogic из самой игры.
+-- Шаблон маркера для HudElementWorldMarkers: здоровье врага (полоса, кольцо или сфера) и до MAX_DOTS
+-- меток периодического урона со стаками. Анимацию «призрачного» урона даёт HudHealthBarLogic из игры.
+--
+-- Раскладка каждый кадр, всё строится ВВЕРХ от точки маркера (она над головой врага), чтобы ничего
+-- не закрывало модель: внизу фигура или полоса, над ней строка эффектов, сверху имя; число здоровья —
+-- справа от фигуры. Все размеры умножаются на масштаб по расстоянию (_distance_scale).
 
 local mod = get_mod("auspex_vitals")
 local Status = mod.av_status
@@ -15,12 +18,20 @@ local ICON_GRADIENT = Status.ICON_GRADIENT
 local ICON_SIZE = 18
 local DOT_UPDATE_INTERVAL = 0.2
 local BAR_HEIGHT = 7
-local DOT_ROW_Y = BAR_HEIGHT + 3
 -- запас для определения виджета: ширина полосы с учётом настройки масштаба не больше этой
 local MAX_WIDTH = 400
 local TICK_WIDTH = 2
 local FONT_TYPE = "proxima_nova_bold"
 local SMALL_FONT_SIZE = 14
+local MIN_FONT_SIZE = 9
+local GAP = 3 -- зазор между строками раскладки, пикселей при масштабе 1
+local TEXT_BOX_HEIGHT = 20
+local DOT_TEXT_WIDTH = 30
+
+-- Масштаб по расстоянию: полный до SCALE_NEAR метров, дальше линейно до SCALE_FAR_MIN на пределе дальности.
+local SCALE_NEAR = 6
+local SCALE_FAR_MIN = 0.55
+
 -- Перекрытие другими врагами: луч от камеры к полосе фильтром стрельбы игрока (попадает по телам).
 -- Стены проверяет сам движок (check_line_of_sight), его фильтр тела врагов не видит.
 local OCCLUSION_FILTER = "filter_player_character_shooting_raycast_dynamics"
@@ -36,9 +47,8 @@ local HEAD_MARGIN = 0.3 -- метров над костью головы
 local DEFAULT_BASE_HEIGHT = 2
 local NUM_TICKS = 3 -- деления на 25, 50 и 75 %
 
--- Кольцо (настройка bar_style = "ring"): RING_SEGMENTS точек-прямоугольников по окружности,
--- по RING_SEGMENTS / 4 на четверть; зазор между четвертями — деления 25/50/75 %.
--- Точки не поворачиваем: при таком размере они сливаются в линию, а материалы не нужны.
+-- Кольцо из точек (bar_style = "ring"): RING_SEGMENTS прямоугольников по окружности, по RING_SEGMENTS / 4
+-- на четверть; зазор между четвертями — деления 25/50/75 %. Точки не поворачиваем — материалы не нужны.
 local RING_SEGMENTS = 24
 local RING_QUARTER_GAP = math.rad(10)
 local RING_BACKGROUND_COLOR = { 160, 20, 20, 20 }
@@ -50,17 +60,15 @@ local RING_BY_CATEGORY = {
 	special = { radius = 17, dot = 4 },
 	boss = { radius = 23, dot = 5 },
 }
-local RING_MAX_DOT = 12
 
 -- Сфера (bar_style = "sphere"): залитый круг игры (материал сканера), здоровье налито снизу вверх, как
 -- жидкость. Уровень — обрезка по UV (проход texture_uv), поэтому край круга гладкий. Контур — круг колеса
--- команд, если загружен. Если материал сферы не загружен, маркер остаётся полосой.
+-- команд, если загружен. Делений нет: на маленьком круге они выглядят как штриховка.
 local SPHERE_MATERIAL = "content/ui/materials/backgrounds/scanner/scanner_drill_circle_filled"
 local SPHERE_RIM_MATERIAL = "content/ui/materials/hud/communication_wheel/middle_circle"
 local SPHERE_BACKGROUND_COLOR = { 170, 25, 25, 25 }
 local SPHERE_GHOST_COLOR = { 230, 240, 200, 200 }
 local SPHERE_RIM_COLOR = { 220, 0, 0, 0 }
-local SPHERE_TICK_COLOR = { 200, 0, 0, 0 }
 -- диаметр при масштабе 100 %
 local SPHERE_BY_CATEGORY = {
 	horde = 22,
@@ -68,11 +76,11 @@ local SPHERE_BY_CATEGORY = {
 	special = 30,
 	boss = 40,
 }
-local SPHERE_MAX_DIAMETER = 160
+local SHAPE_MAX_DIAMETER = 160
 
 -- Гладкое кольцо (bar_style = "ring_smooth"): круг разборки предмета игры, у него своя круговая заливка
 -- material_values.progress. Отражаем по горизонтали (uvs), чтобы урон «съедал» кольцо по часовой стрелке
--- от 12 часов, как у кольца из точек. «Призрачного» урона нет: незаполненная часть материала непрозрачна.
+-- от 12 часов. «Призрачного» урона нет: незаполненная часть материала непрозрачна.
 local RING_SMOOTH_MATERIAL = "content/ui/materials/icons/items/salvage_circle"
 -- диаметр при масштабе 100 %
 local RING_SMOOTH_BY_CATEGORY = {
@@ -102,7 +110,7 @@ local BAR_COLOR_BY_CATEGORY = {
 local template = {}
 
 template.name = "auspex_vitals_bar"
--- Высота полосы считается каждый кадр в _update_anchor: от корня юнита (node 1) до большего из
+-- Высота точки маркера считается каждый кадр в _update_anchor: от корня юнита (node 1) до большего из
 -- «голова + HEAD_MARGIN» и «рост породы × размер врага», плюс сдвиг из настроек.
 -- Шаблон клонируется на каждый маркер, поэтому position_offset у каждого свой.
 template.unit_node = nil
@@ -137,29 +145,29 @@ function template.apply_settings(cfg)
 	template.fade_settings.distance_min = cfg.max_distance * 0.8
 end
 
-local function _rect(style_id, offset, size, color)
+local function _rect(style_id, color)
 	return {
 		pass_type = "rect",
 		style_id = style_id,
 		style = {
-			offset = offset,
-			size = size,
+			offset = { 0, 0, 3 },
+			size = { 0, 0 },
 			color = color,
 		},
 	}
 end
 
-local function _text(style_id, offset, size, font_size, h_align, v_align)
+local function _text(style_id, width, h_align, v_align)
 	return {
 		pass_type = "text",
 		style_id = style_id,
 		value_id = style_id,
 		value = "",
 		style = {
-			offset = offset,
-			size = size,
+			offset = { 0, 0, 6 },
+			size = { width, TEXT_BOX_HEIGHT },
 			font_type = FONT_TYPE,
-			font_size = font_size,
+			font_size = SMALL_FONT_SIZE,
 			drop_shadow = true,
 			text_horizontal_alignment = h_align,
 			text_vertical_alignment = v_align,
@@ -168,92 +176,86 @@ local function _text(style_id, offset, size, font_size, h_align, v_align)
 	}
 end
 
--- Смещения задаются от точки маркера; ширину полосы и положение меток ставит update_function.
+local function _texture(style_id, material, pass_type, z)
+	return {
+		pass_type = pass_type or "texture",
+		style_id = style_id,
+		value = material,
+		style = {
+			offset = { 0, 0, z or 3 },
+			size = { 0, 0 },
+			color = { 255, 255, 255, 255 },
+			uvs = pass_type == "texture_uv" and {
+				{ 0, 0 },
+				{ 1, 1 },
+			} or nil,
+		},
+	}
+end
+
+-- Вид фигуры для этого маркера: выбранный в настройках, если его материал загружен, иначе полоса.
+local function _shape_kind()
+	local style = mod.cfg and mod.cfg.bar_style or "bar"
+
+	if style == "ring" then
+		return "ring"
+	elseif style == "ring_smooth" and Status.resource_available("material", RING_SMOOTH_MATERIAL) then
+		return "ring_smooth"
+	elseif style == "sphere" and Status.resource_available("material", SPHERE_MATERIAL) then
+		return "sphere"
+	end
+
+	return "bar"
+end
+
+-- Проходы создаются только для выбранного вида: маркеры пересоздаются при смене настроек.
 template.create_widget_defintion = function (template, scenegraph_id)
+	local kind = _shape_kind()
 	local passes = {
-		_rect("background", { 0, 0, 1 }, { MAX_WIDTH, BAR_HEIGHT }, { 160, 20, 20, 20 }),
-		_rect("ghost_bar", { 0, 0, 2 }, { 0, BAR_HEIGHT }, { 255, 240, 200, 200 }),
-		_rect("bar", { 0, 0, 3 }, { 0, BAR_HEIGHT }, { 255, 200, 40, 40 }),
-		_rect("tick_1", { 0, 0, 5 }, { TICK_WIDTH, BAR_HEIGHT }, { 255, 0, 0, 0 }),
-		_rect("tick_2", { 0, 0, 5 }, { TICK_WIDTH, BAR_HEIGHT }, { 255, 0, 0, 0 }),
-		_rect("tick_3", { 0, 0, 5 }, { TICK_WIDTH, BAR_HEIGHT }, { 255, 0, 0, 0 }),
-		_text("name_text", { -MAX_WIDTH, -22, 4 }, { MAX_WIDTH * 2, 20 }, SMALL_FONT_SIZE, "center", "bottom"),
-		_text("health_text", { 0, BAR_HEIGHT * 0.5 - 10, 4 }, { 80, 20 }, SMALL_FONT_SIZE, "left", "center"),
+		_text("name_text", MAX_WIDTH * 2, "center", "bottom"),
+		_text("health_text", 80, "left", "center"),
 	}
 
-	-- точки кольца создаём, только если выбран вид «кольцо»: маркеры пересоздаются при смене настроек
-	if mod.cfg and mod.cfg.bar_style == "ring" then
-		for i = 1, RING_SEGMENTS do
-			passes[#passes + 1] = _rect("ring_" .. i, { 0, 0, 3 }, { 0, 0 }, { 255, 255, 255, 255 })
-		end
-	end
-
-	-- гладкое кольцо: только если выбран этот вид и материал загружен
-	if mod.cfg and mod.cfg.bar_style == "ring_smooth" and Status.resource_available("material", RING_SMOOTH_MATERIAL) then
-		passes[#passes + 1] = {
-			pass_type = "texture_uv",
-			style_id = "ring_smooth",
-			value = RING_SMOOTH_MATERIAL,
-			style = {
-				offset = { 0, 0, 3 },
-				size = { 0, 0 },
-				color = { 255, 255, 255, 255 },
-				material_values = {
-					progress = 1,
-				},
-				uvs = {
-					{ 1, 0 },
-					{ 0, 1 },
-				},
-			},
-		}
-	end
-
-	-- сфера: только если выбран этот вид и материал загружен
-	if mod.cfg and mod.cfg.bar_style == "sphere" and Status.resource_available("material", SPHERE_MATERIAL) then
-		passes[#passes + 1] = {
-			pass_type = "texture",
-			style_id = "sphere_background",
-			value = SPHERE_MATERIAL,
-			style = {
-				offset = { 0, 0, 1 },
-				size = { 0, 0 },
-				color = table.clone(SPHERE_BACKGROUND_COLOR),
-			},
-		}
-
-		for _, layer in ipairs({ "sphere_ghost", "sphere_fill" }) do
-			passes[#passes + 1] = {
-				pass_type = "texture_uv",
-				style_id = layer,
-				value = SPHERE_MATERIAL,
-				style = {
-					offset = { 0, 0, layer == "sphere_fill" and 3 or 2 },
-					size = { 0, 0 },
-					color = { 255, 255, 255, 255 },
-					uvs = {
-						{ 0, 0 },
-						{ 1, 1 },
-					},
-				},
-			}
-		end
+	if kind == "bar" then
+		passes[#passes + 1] = _rect("background", { 160, 20, 20, 20 })
+		passes[#passes + 1] = _rect("ghost_bar", { 255, 240, 200, 200 })
+		passes[#passes + 1] = _rect("bar", { 255, 200, 40, 40 })
 
 		for i = 1, NUM_TICKS do
-			passes[#passes + 1] = _rect("sphere_tick_" .. i, { 0, 0, 4 }, { 0, 1 }, table.clone(SPHERE_TICK_COLOR))
+			local tick = _rect("tick_" .. i, { 255, 0, 0, 0 })
+
+			tick.style.offset[3] = 5
+			passes[#passes + 1] = tick
 		end
+	elseif kind == "ring" then
+		for i = 1, RING_SEGMENTS do
+			passes[#passes + 1] = _rect("ring_" .. i, { 255, 255, 255, 255 })
+		end
+	elseif kind == "ring_smooth" then
+		local ring = _texture("ring_smooth", RING_SMOOTH_MATERIAL, "texture_uv", 3)
+
+		ring.style.material_values = {
+			progress = 1,
+		}
+		-- отражение по горизонтали: урон идёт по часовой стрелке
+		ring.style.uvs = {
+			{ 1, 0 },
+			{ 0, 1 },
+		}
+		passes[#passes + 1] = ring
+	elseif kind == "sphere" then
+		local background = _texture("sphere_background", SPHERE_MATERIAL, "texture", 1)
+
+		background.style.color = table.clone(SPHERE_BACKGROUND_COLOR)
+		passes[#passes + 1] = background
+		passes[#passes + 1] = _texture("sphere_ghost", SPHERE_MATERIAL, "texture_uv", 2)
+		passes[#passes + 1] = _texture("sphere_fill", SPHERE_MATERIAL, "texture_uv", 3)
 
 		if Status.resource_available("material", SPHERE_RIM_MATERIAL) then
-			passes[#passes + 1] = {
-				pass_type = "texture",
-				style_id = "sphere_rim",
-				value = SPHERE_RIM_MATERIAL,
-				style = {
-					offset = { 0, 0, 5 },
-					size = { 0, 0 },
-					color = table.clone(SPHERE_RIM_COLOR),
-				},
-			}
+			local rim = _texture("sphere_rim", SPHERE_RIM_MATERIAL, "texture", 4)
+
+			rim.style.color = table.clone(SPHERE_RIM_COLOR)
+			passes[#passes + 1] = rim
 		end
 	end
 
@@ -261,16 +263,18 @@ template.create_widget_defintion = function (template, scenegraph_id)
 
 	for i = 1, MAX_DOTS do
 		local flat_id = "dot_flat_" .. i
+		local chip = _rect("dot_chip_" .. i, { 255, 255, 255, 255 })
 
-		passes[#passes + 1] = _rect("dot_chip_" .. i, { 0, 0, 4 }, { 0, 6 }, { 255, 255, 255, 255 })
-		passes[#passes + 1] = _text("dot_text_" .. i, { 0, 0, 4 }, { 30, 16 }, SMALL_FONT_SIZE, "left", "center")
+		chip.style.offset[3] = 5
+		passes[#passes + 1] = chip
+		passes[#passes + 1] = _text("dot_text_" .. i, DOT_TEXT_WIDTH, "left", "center")
 		-- плоский значок: материал задаётся через content[flat_id], цвет — цвет эффекта
 		passes[#passes + 1] = {
 			pass_type = "texture",
 			style_id = flat_id,
 			value_id = flat_id,
 			style = {
-				offset = { 0, DOT_ROW_Y, 5 },
+				offset = { 0, 0, 5 },
 				size = { ICON_SIZE, ICON_SIZE },
 				color = { 255, 255, 255, 255 },
 			},
@@ -287,7 +291,7 @@ template.create_widget_defintion = function (template, scenegraph_id)
 				style_id = "dot_icon_" .. i,
 				value = ICON_MATERIAL,
 				style = {
-					offset = { 0, DOT_ROW_Y, 5 },
+					offset = { 0, 0, 5 },
 					size = { ICON_SIZE, ICON_SIZE },
 					color = { 255, 255, 255, 255 },
 					material_values = {
@@ -305,20 +309,11 @@ template.create_widget_defintion = function (template, scenegraph_id)
 	return UIWidget.create_definition(passes, scenegraph_id)
 end
 
--- Части полосы не нужны, когда здоровье показано кольцом или сферой.
-local function _hide_bar(style)
-	style.background.size[1] = 0
-	style.ghost_bar.size[1] = 0
-	style.bar.size[1] = 0
-
-	for i = 1, NUM_TICKS do
-		style["tick_" .. i].size[1] = 0
-	end
-end
-
 template.on_enter = function (widget, marker, template)
 	local data = marker.data or {}
 	local category = data.category or "horde"
+	local style = widget.style
+	local cfg = mod.cfg
 
 	marker.bar_logic = HudHealthBarLogic:new(template.bar_settings)
 
@@ -332,98 +327,31 @@ template.on_enter = function (widget, marker, template)
 	local size = unit_data and unit_data.breed_size_variation and unit_data:breed_size_variation() or 1
 
 	marker.base_height = (breed and breed.base_height or DEFAULT_BASE_HEIGHT) * (size or 1)
-	local width_scale = (mod.cfg and mod.cfg.bar_width or 100) / 100
 
-	marker.width = math.min(math.floor((WIDTH_BY_CATEGORY[category] or WIDTH_BY_CATEGORY.horde) * width_scale), MAX_WIDTH)
-	marker.dot_row_y = DOT_ROW_Y
+	-- базовые размеры фигуры (без масштаба по расстоянию); вид определяем по созданным проходам
+	local width_scale = (cfg and cfg.bar_width or 100) / 100
 
-	if widget.style.ring_smooth then
-		local diameter = math.min(math.floor((RING_SMOOTH_BY_CATEGORY[category] or RING_SMOOTH_BY_CATEGORY.horde) * width_scale + 0.5), SPHERE_MAX_DIAMETER)
-		local ring_style = widget.style.ring_smooth
-
-		marker.is_ring_smooth = true
-		marker.shape_diameter = diameter
-		marker.shape_center_y = diameter * 0.5
-		marker.width = diameter
-		marker.dot_row_y = diameter + 3
-		ring_style.offset[1] = -diameter * 0.5
-		ring_style.size[1] = diameter
-		ring_style.size[2] = diameter
-		_hide_bar(widget.style)
-	end
-
-	if widget.style.sphere_fill then
-		local diameter = math.min(math.floor((SPHERE_BY_CATEGORY[category] or SPHERE_BY_CATEGORY.horde) * width_scale + 0.5), SPHERE_MAX_DIAMETER)
-		local style = widget.style
-		local left = -diameter * 0.5
-
-		marker.is_sphere = true
-		marker.sphere_diameter = diameter
-		marker.shape_diameter = diameter
-		marker.shape_center_y = diameter * 0.5
-		marker.width = diameter
-		marker.dot_row_y = diameter + 3
-
-		for _, id in ipairs({ "sphere_background", "sphere_ghost", "sphere_fill" }) do
-			style[id].offset[1] = left
-			style[id].size[1] = diameter
-		end
-
-		style.sphere_background.size[2] = diameter
-
-		-- деления: горизонтальные хорды на высоте 25/50/75 %
-		local radius = diameter * 0.5
-
-		for i = 1, NUM_TICKS do
-			local level = i / (NUM_TICKS + 1)
-			local dy = (0.5 - level) * diameter
-			local chord = 2 * math.sqrt(math.max(radius * radius - dy * dy, 0))
-			local tick_style = style["sphere_tick_" .. i]
-
-			tick_style.offset[1] = math.floor(-chord * 0.5 + 0.5)
-			tick_style.offset[2] = math.floor(diameter * (1 - level) + 0.5)
-			tick_style.size[1] = math.floor(chord + 0.5)
-		end
-
-		if style.sphere_rim then
-			style.sphere_rim.offset[1] = left - 1
-			style.sphere_rim.offset[2] = -1
-			style.sphere_rim.size[1] = diameter + 2
-			style.sphere_rim.size[2] = diameter + 2
-		end
-
-		style.background.size[1] = 0
-		style.ghost_bar.size[1] = 0
-		style.bar.size[1] = 0
-
-		for i = 1, NUM_TICKS do
-			style["tick_" .. i].size[1] = 0
-		end
-	end
-
-	if widget.style.ring_1 then
+	if style.ring_1 then
 		local ring = RING_BY_CATEGORY[category] or RING_BY_CATEGORY.horde
 
-		marker.is_ring = true
+		marker.kind = "ring"
 		marker.ring_radius = ring.radius * width_scale
-		marker.ring_dot = math.min(math.max(math.floor(ring.dot * width_scale + 0.5), 2), RING_MAX_DOT)
-		marker.shape_diameter = marker.ring_radius * 2 - marker.ring_dot
-		marker.shape_center_y = marker.ring_radius + marker.ring_dot * 0.5
-		-- для строки эффектов и числа здоровья кольцо — это «полоса» шириной в диаметр
-		marker.width = math.floor(marker.ring_radius * 2 + marker.ring_dot)
-		marker.dot_row_y = marker.ring_radius * 2 + marker.ring_dot + 3
-
-		-- части полосы в виде «кольцо» не нужны
-		local style = widget.style
-
-		style.background.size[1] = 0
-		style.ghost_bar.size[1] = 0
-		style.bar.size[1] = 0
-
-		for i = 1, NUM_TICKS do
-			style["tick_" .. i].size[1] = 0
-		end
+		marker.ring_dot = ring.dot * width_scale
+		marker.shape_width = marker.ring_radius * 2 + marker.ring_dot
+	elseif style.ring_smooth then
+		marker.kind = "ring_smooth"
+		marker.shape_width = math.min((RING_SMOOTH_BY_CATEGORY[category] or RING_SMOOTH_BY_CATEGORY.horde) * width_scale, SHAPE_MAX_DIAMETER)
+	elseif style.sphere_fill then
+		marker.kind = "sphere"
+		marker.shape_width = math.min((SPHERE_BY_CATEGORY[category] or SPHERE_BY_CATEGORY.horde) * width_scale, SHAPE_MAX_DIAMETER)
+	else
+		marker.kind = "bar"
+		marker.shape_width = math.min((WIDTH_BY_CATEGORY[category] or WIDTH_BY_CATEGORY.horde) * width_scale, MAX_WIDTH)
 	end
+
+	marker.shape_height = marker.kind == "bar" and BAR_HEIGHT or marker.shape_width
+	-- значок главного эффекта в центре фигуры (кольца, сферы)
+	marker.center_dot = marker.kind ~= "bar" and cfg and cfg.dot_center or false
 	marker.dots = {}
 	marker.dot_count = 0
 	marker.dot_timer = 0
@@ -435,18 +363,15 @@ template.on_enter = function (widget, marker, template)
 		marker.dots[i] = {}
 	end
 
-	-- значок главного эффекта в центре фигуры (кольца, сферы)
-	if marker.shape_diameter and mod.cfg and mod.cfg.dot_center then
-		marker.center_dot_size = math.max(math.floor(marker.shape_diameter * CENTER_ICON_FRACTION), 8)
-	end
-
 	local bar_color = BAR_COLOR_BY_CATEGORY[category] or BAR_COLOR_BY_CATEGORY.horde
-	local color = widget.style.bar.color
 
-	color[1], color[2], color[3], color[4] = bar_color[1], bar_color[2], bar_color[3], bar_color[4]
 	marker.bar_color = bar_color
 
-	local cfg = mod.cfg
+	if style.bar then
+		local color = style.bar.color
+
+		color[1], color[2], color[3], color[4] = bar_color[1], bar_color[2], bar_color[3], bar_color[4]
+	end
 
 	if cfg and cfg.show_name then
 		widget.content.name_text = Status.display_name(marker.unit) or ""
@@ -461,11 +386,36 @@ template.on_exit = function (widget, marker, template)
 	end
 end
 
-local function _layout_bar(style, width, health_fraction, ghost_fraction, spacing)
+-- Масштаб по расстоянию до врага (content.distance ставит движок до update_function).
+local function _distance_scale(content, cfg)
+	if cfg and cfg.shrink_with_distance == false then
+		return 1
+	end
+
+	local distance = content.distance or 0
+	local far = cfg and cfg.max_distance or 25
+
+	if distance <= SCALE_NEAR or far <= SCALE_NEAR then
+		return 1
+	end
+
+	local t = math.min((distance - SCALE_NEAR) / (far - SCALE_NEAR), 1)
+
+	return 1 - t * (1 - SCALE_FAR_MIN)
+end
+
+-- Полоса: нижний край — на точке маркера.
+local function _layout_bar(style, width, height, health_fraction, ghost_fraction, spacing)
 	local left = -width * 0.5
+	local top = -height
 	local health_width = width * health_fraction
 	local ghost_width = math.max(width * ghost_fraction - health_width, 0)
 	local background_width = math.max(width - health_width - ghost_width - spacing, 0)
+
+	for _, id in ipairs({ "bar", "ghost_bar", "background" }) do
+		style[id].offset[2] = top
+		style[id].size[2] = height
+	end
 
 	style.bar.offset[1] = left
 	style.bar.size[1] = health_width
@@ -477,17 +427,22 @@ local function _layout_bar(style, width, health_fraction, ghost_fraction, spacin
 	style.background.size[1] = background_width
 
 	for i = 1, NUM_TICKS do
-		style["tick_" .. i].offset[1] = math.floor(left + width * i / (NUM_TICKS + 1) - TICK_WIDTH * 0.5)
+		local tick_style = style["tick_" .. i]
+
+		tick_style.offset[1] = math.floor(left + width * i / (NUM_TICKS + 1) - TICK_WIDTH * 0.5)
+		tick_style.offset[2] = top
+		tick_style.size[1] = TICK_WIDTH
+		tick_style.size[2] = height
 	end
 end
 
--- Кольцо: точка k закрашена цветом здоровья, если на неё приходится оставшееся здоровье,
--- светлым — если «призрачный» урон, тёмным — если потеряно. Урон «съедает» кольцо по часовой стрелке
--- от 12 часов, как стрелка таймера: оставшееся здоровье — хвост кольца до 12 часов.
-local function _layout_ring(style, marker, health_fraction, ghost_fraction)
-	local radius = marker.ring_radius
-	local dot = marker.ring_dot
-	local center_y = radius + dot * 0.5
+-- Кольцо из точек: урон «съедает» кольцо по часовой стрелке от 12 часов, как стрелка таймера.
+-- Точка закрашена цветом здоровья, если на неё приходится оставшееся здоровье, светлым — «призрачный»
+-- урон, тёмным — потерянное. Нижний край кольца — на точке маркера.
+local function _layout_ring(style, marker, scale, health_fraction, ghost_fraction)
+	local radius = marker.ring_radius * scale
+	local dot = math.max(math.floor(marker.ring_dot * scale + 0.5), 2)
+	local center_y = -radius - dot * 0.5
 	local per_quarter = RING_SEGMENTS / 4
 	local quarter_arc = math.pi * 0.5 - RING_QUARTER_GAP
 	local health_color = marker.bar_color
@@ -514,27 +469,55 @@ local function _layout_ring(style, marker, health_fraction, ghost_fraction)
 	end
 end
 
+local function _layout_ring_smooth(style, marker, diameter, health_fraction)
+	local ring_style = style.ring_smooth
+	local ring_color = ring_style.color
+	local bar_color = marker.bar_color
+
+	ring_color[1], ring_color[2], ring_color[3], ring_color[4] = bar_color[1], bar_color[2], bar_color[3], bar_color[4]
+	ring_style.offset[1] = -diameter * 0.5
+	ring_style.offset[2] = -diameter
+	ring_style.size[1] = diameter
+	ring_style.size[2] = diameter
+	ring_style.material_values.progress = math.clamp(health_fraction, 0, 1)
+end
+
 -- Сфера: слой обрезан по высоте — нижняя доля fraction круга. UV v идёт сверху вниз.
 local function _layout_sphere_layer(layer_style, diameter, fraction)
 	local height = diameter * fraction
 	local uvs = layer_style.uvs
 
-	layer_style.offset[2] = diameter - height
+	layer_style.offset[1] = -diameter * 0.5
+	layer_style.offset[2] = -height
+	layer_style.size[1] = diameter
 	layer_style.size[2] = height
 	uvs[1][2] = 1 - fraction
 	uvs[2][2] = 1
 end
 
-local function _layout_sphere(style, marker, health_fraction, ghost_fraction)
-	local diameter = marker.sphere_diameter
+local function _layout_sphere(style, marker, diameter, health_fraction, ghost_fraction)
 	local fill_color = style.sphere_fill.color
 	local bar_color = marker.bar_color
 	local ghost_color = style.sphere_ghost.color
+	local background = style.sphere_background
 
 	fill_color[1], fill_color[2], fill_color[3], fill_color[4] = bar_color[1], bar_color[2], bar_color[3], bar_color[4]
 	ghost_color[1], ghost_color[2], ghost_color[3], ghost_color[4] = SPHERE_GHOST_COLOR[1], SPHERE_GHOST_COLOR[2], SPHERE_GHOST_COLOR[3], SPHERE_GHOST_COLOR[4]
+	background.offset[1] = -diameter * 0.5
+	background.offset[2] = -diameter
+	background.size[1] = diameter
+	background.size[2] = diameter
 	_layout_sphere_layer(style.sphere_fill, diameter, math.clamp(health_fraction, 0, 1))
 	_layout_sphere_layer(style.sphere_ghost, diameter, math.clamp(math.max(ghost_fraction, health_fraction), 0, 1))
+
+	local rim = style.sphere_rim
+
+	if rim then
+		rim.offset[1] = -diameter * 0.5 - 1
+		rim.offset[2] = -diameter - 1
+		rim.size[1] = diameter + 2
+		rim.size[2] = diameter + 2
+	end
 end
 
 -- Значок эффекта: плоский материал или картинка баффа (если есть проход для неё).
@@ -549,7 +532,6 @@ local function _dot_visual(style, i, dot)
 end
 
 -- Одна ячейка эффекта: значок (плоский / баффа / цветная метка) в точке (x, y) размера icon_size.
--- Возвращает x правого края значка.
 local function _layout_dot_icon(widget, i, dot, x, y, icon_size, gradient)
 	local style = widget.style
 	local content = widget.content
@@ -574,7 +556,7 @@ local function _layout_dot_icon(widget, i, dot, x, y, icon_size, gradient)
 		content[visible_id] = false
 		chip_style.size[1] = 0
 
-		return x + icon_size
+		return
 	elseif kind == "buff" then
 		local material_values = icon_style.material_values
 
@@ -592,21 +574,19 @@ local function _layout_dot_icon(widget, i, dot, x, y, icon_size, gradient)
 		content[flat_id .. "_on"] = false
 		chip_style.size[1] = 0
 
-		return x + icon_size
+		return
 	end
 
 	local chip_color = chip_style.color
-	local chip_size = math.max(math.floor(icon_size / 3), 4)
+	local chip_size = math.max(math.floor(icon_size / 3), 3)
 
 	chip_color[1], chip_color[2], chip_color[3], chip_color[4] = color[1], color[2], color[3], color[4]
 	chip_style.size[1] = chip_size
 	chip_style.size[2] = chip_size
-	chip_style.offset[1] = x
+	chip_style.offset[1] = x + (icon_size - chip_size) * 0.5
 	chip_style.offset[2] = y + (icon_size - chip_size) * 0.5
 	content[visible_id] = false
 	content[flat_id .. "_on"] = false
-
-	return x + chip_size
 end
 
 local function _hide_dot(widget, i)
@@ -618,16 +598,29 @@ local function _hide_dot(widget, i)
 	content["dot_flat_" .. i .. "_on"] = false
 end
 
--- Эффекты: строкой под полосой/фигурой. С настройкой «значок в центре» (кольца и сфера) первый эффект
--- встаёт в центр фигуры, его стаки — слева от фигуры, остальные эффекты — строкой ниже.
-local function _layout_dots(widget, marker, show)
+-- ширина числа стаков в строке эффектов (при масштабе 1)
+local function _stacks_width(stacks)
+	return stacks > 9 and 20 or stacks > 0 and 12 or 0
+end
+
+-- Эффекты: строкой по центру над фигурой (row_y — верх строки). С «главным эффектом в центре» первый
+-- эффект — внутри фигуры, его стаки — слева от неё, остальные — строкой.
+local function _layout_dots(widget, marker, count, scale, shape_width, shape_height, row_y)
 	local style = widget.style
 	local content = widget.content
-	local count = show and marker.dot_count or 0
-	local row_y = marker.dot_row_y or DOT_ROW_Y
-	local x = -marker.width * 0.5
 	local gradient = Status.resource_available("texture", ICON_GRADIENT) and ICON_GRADIENT or nil
-	local center = marker.center_dot_size ~= nil
+	local icon_size = math.floor(ICON_SIZE * scale + 0.5)
+	local font_size = math.max(SMALL_FONT_SIZE * scale, MIN_FONT_SIZE)
+	local first_in_row = marker.center_dot and 2 or 1
+
+	-- ширина строки, чтобы поставить её по центру
+	local row_width = 0
+
+	for i = first_in_row, count do
+		row_width = row_width + icon_size + (2 + _stacks_width(marker.dots[i].stacks)) * scale
+	end
+
+	local x = -row_width * 0.5
 
 	for i = 1, MAX_DOTS do
 		if i > count then
@@ -640,24 +633,26 @@ local function _layout_dots(widget, marker, show)
 			local text_color = text_style.text_color
 
 			text_color[2], text_color[3], text_color[4] = color[2], color[3], color[4]
+			text_style.font_size = font_size
 			content["dot_text_" .. i] = entry.stacks > 0 and tostring(entry.stacks) or ""
 
-			if center and i == 1 then
-				local size = marker.center_dot_size
+			if i < first_in_row then
+				local size = math.floor(shape_width * CENTER_ICON_FRACTION * scale + 0.5)
+				local center_y = -shape_height * 0.5
 
-				_layout_dot_icon(widget, i, dot, -size * 0.5, marker.shape_center_y - size * 0.5, size, gradient)
+				_layout_dot_icon(widget, i, dot, -size * 0.5, center_y - size * 0.5, size, gradient)
 
 				-- стаки главного эффекта — слева от фигуры (справа — число здоровья)
 				text_style.text_horizontal_alignment = "right"
-				text_style.offset[1] = -marker.width * 0.5 - 4 - text_style.size[1]
-				text_style.offset[2] = marker.shape_center_y - 8
+				text_style.offset[1] = -shape_width * 0.5 - 4 * scale - DOT_TEXT_WIDTH
+				text_style.offset[2] = center_y - TEXT_BOX_HEIGHT * 0.5
 			else
-				local right = _layout_dot_icon(widget, i, dot, x, row_y, ICON_SIZE, gradient)
+				_layout_dot_icon(widget, i, dot, x, row_y, icon_size, gradient)
 
 				text_style.text_horizontal_alignment = "left"
-				text_style.offset[1] = right + 2
-				text_style.offset[2] = row_y + ICON_SIZE * 0.5 - 8
-				x = right + 2 + (entry.stacks > 9 and 22 or entry.stacks > 0 and 14 or 2)
+				text_style.offset[1] = x + icon_size + 2 * scale
+				text_style.offset[2] = row_y + icon_size * 0.5 - TEXT_BOX_HEIGHT * 0.5
+				x = x + icon_size + (2 + _stacks_width(entry.stacks)) * scale
 			end
 		end
 	end
@@ -732,7 +727,7 @@ local function _occlusion_alpha(parent, marker, cfg, dt)
 	return 1 - occlusion * (1 - OCCLUDED_ALPHA)
 end
 
--- Высота полосы над корнем юнита на следующий кадр: движок прибавляет position_offset к позиции корня.
+-- Высота точки маркера над корнем юнита на следующий кадр: движок прибавляет position_offset к корню.
 local function _update_anchor(marker, template, cfg)
 	local unit = marker.unit
 
@@ -744,7 +739,7 @@ local function _update_anchor(marker, template, cfg)
 	local head_node = marker.head_node
 
 	if head_node then
-		-- голова выше роста породы (наклон, прыжок, крупная модель) — полоса над головой
+		-- голова выше роста породы (наклон, прыжок, крупная модель) — точка над головой
 		local head_height = Unit.world_position(unit, head_node).z - Unit.world_position(unit, 1).z + HEAD_MARGIN
 
 		if head_height > height then
@@ -758,10 +753,11 @@ end
 template.update_function = function (parent, ui_renderer, widget, marker, template, dt, t)
 	local unit = marker.unit
 	local content = widget.content
-
-	_update_anchor(marker, template, mod.cfg)
 	local style = widget.style
 	local cfg = mod.cfg
+
+	_update_anchor(marker, template, cfg)
+
 	local health_extension = HEALTH_ALIVE[unit] and Status.health_extension(unit)
 	local health_percent = health_extension and Status.health_fraction(health_extension) or 0
 	local bar_logic = marker.bar_logic
@@ -771,22 +767,8 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 	local health_fraction, ghost_fraction = bar_logic:animated_health_fractions()
 
 	if health_fraction and ghost_fraction then
-		if marker.is_ring_smooth then
-			local ring_style = style.ring_smooth
-			local ring_color = ring_style.color
-			local bar_color = marker.bar_color
-
-			ring_color[1], ring_color[2], ring_color[3], ring_color[4] = bar_color[1], bar_color[2], bar_color[3], bar_color[4]
-			ring_style.material_values.progress = math.clamp(health_fraction, 0, 1)
-		elseif marker.is_sphere then
-			_layout_sphere(style, marker, health_fraction, ghost_fraction)
-		elseif marker.is_ring then
-			_layout_ring(style, marker, health_fraction, ghost_fraction)
-		else
-			_layout_bar(style, marker.width, health_fraction, ghost_fraction, template.bar_settings.bar_spacing)
-		end
-
 		marker.health_fraction = health_fraction
+		marker.ghost_fraction = ghost_fraction
 	end
 
 	-- полоса дошла до нуля после смерти — маркер больше не нужен
@@ -796,10 +778,30 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 		return
 	end
 
-	if not marker.draw then
+	if not marker.draw or not marker.health_fraction then
 		return
 	end
 
+	-- размеры этого кадра с учётом расстояния
+	local scale = _distance_scale(content, cfg)
+	local shape_width = marker.shape_width * scale
+	local shape_height = marker.shape_height * scale
+	local kind = marker.kind
+
+	health_fraction = marker.health_fraction
+	ghost_fraction = marker.ghost_fraction
+
+	if kind == "ring" then
+		_layout_ring(style, marker, scale, health_fraction, ghost_fraction)
+	elseif kind == "ring_smooth" then
+		_layout_ring_smooth(style, marker, shape_width, health_fraction)
+	elseif kind == "sphere" then
+		_layout_sphere(style, marker, shape_width, health_fraction, ghost_fraction)
+	else
+		_layout_bar(style, shape_width, math.max(shape_height, 2), health_fraction, ghost_fraction, template.bar_settings.bar_spacing)
+	end
+
+	-- эффекты
 	local show_dots = cfg and cfg.show_dots
 
 	if show_dots then
@@ -811,14 +813,33 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 		end
 	end
 
-	_layout_dots(widget, marker, show_dots)
+	local dot_count = show_dots and marker.dot_count or 0
+	local gap = GAP * scale
+	-- строка эффектов над фигурой; место под неё держим всегда, когда эффекты включены, чтобы имя не прыгало
+	local row_height = show_dots and math.floor(ICON_SIZE * scale + 0.5) or 0
+	local row_y = -shape_height - gap - row_height
+
+	_layout_dots(widget, marker, dot_count, scale, shape_width, shape_height, row_y)
+
+	-- имя — над строкой эффектов
+	local font_size = math.max(SMALL_FONT_SIZE * scale, MIN_FONT_SIZE)
+	local name_style = style.name_text
+	local name_bottom = (show_dots and row_y or -shape_height) - gap
+
+	name_style.font_size = font_size
+	name_style.offset[1] = -MAX_WIDTH
+	name_style.offset[2] = name_bottom - TEXT_BOX_HEIGHT
+
+	-- число здоровья — справа от фигуры, по её центру
+	local health_style = style.health_text
+
+	health_style.font_size = font_size
+	health_style.offset[1] = shape_width * 0.5 + 4 * scale
+	health_style.offset[2] = -shape_height * 0.5 - TEXT_BOX_HEIGHT * 0.5
 
 	if cfg and cfg.show_health_number and health_extension then
 		local health = Status.current_health(health_extension)
 
-		style.health_text.offset[1] = marker.width * 0.5 + 4
-		-- у кольца число — справа по центру кольца, у полосы — справа от полосы
-		style.health_text.offset[2] = marker.shape_center_y and marker.shape_center_y - 10 or BAR_HEIGHT * 0.5 - 10
 		content.health_text = health and string.format("%d", math.ceil(health)) or ""
 	else
 		content.health_text = ""
