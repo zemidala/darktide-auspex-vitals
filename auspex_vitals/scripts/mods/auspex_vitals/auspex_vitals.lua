@@ -217,4 +217,19 @@ mod.on_all_mods_loaded = function ()
 			mod:echo(mod:localize("warning_other_bars", title))
 		end
 	end
+
+	-- моды со своими цифрами урона: их цифры не отличить от наших
+	local other_numbers = {
+		DamageNumbers = "Damage Numbers",
+	}
+
+	if mod.cfg.show_damage_numbers then
+		for mod_id, title in pairs(other_numbers) do
+			local other = get_mod(mod_id)
+
+			if other and other:is_enabled() then
+				mod:echo(mod:localize("warning_other_numbers", title))
+			end
+		end
+	end
 end

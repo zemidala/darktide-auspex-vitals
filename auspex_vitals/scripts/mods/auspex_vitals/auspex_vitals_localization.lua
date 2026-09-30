@@ -168,6 +168,10 @@ return {
 		ru = "Полосы получают ближайшие враги. Чем меньше полос, тем меньше нагрузка.",
 	},
 
+	warning_other_numbers = {
+		en = "%s mod is enabled too: its damage numbers will mix with ours.",
+		ru = "Включён ещё и мод %s: его цифры урона смешаются с нашими.",
+	},
 	warning_other_bars = {
 		en = "%s mod is enabled too: enemies may get two health bars.",
 		ru = "Включён ещё и мод %s: у врагов могут быть две полосы здоровья.",
