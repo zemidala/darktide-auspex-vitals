@@ -75,8 +75,8 @@ return {
 		ru = "Вид здоровья",
 	},
 	bar_style_description = {
-		en = "Bar — a thin bar over the enemy. Ring — a compact ring that fills clockwise; takes less space in a crowd.",
-		ru = "Полоса — тонкая полоса над врагом. Кольцо — компактное кольцо, заполняется по часовой стрелке; в толпе занимает меньше места.",
+		en = "Bar — a thin bar over the enemy. Ring — a compact ring, damage eats it clockwise. Sphere — a filled circle, health poured bottom-up like liquid. Ring and sphere take less space in a crowd.",
+		ru = "Полоса — тонкая полоса над врагом. Кольцо — компактное кольцо, урон «съедает» его по часовой стрелке. Сфера — залитый круг, здоровье налито снизу вверх, как жидкость. Кольцо и сфера в толпе занимают меньше места.",
 	},
 	bar_style_bar = {
 		en = "Bar",
@@ -86,13 +86,17 @@ return {
 		en = "Ring",
 		ru = "Кольцо",
 	},
+	bar_style_sphere = {
+		en = "Sphere",
+		ru = "Сфера",
+	},
 	bar_width = {
 		en = "Bar width / ring size",
 		ru = "Ширина полос / размер колец",
 	},
 	bar_width_description = {
-		en = "Base bar width: horde 100, elites and specialists 140, bosses 190 pixels. Base ring diameter: 26, 34 and 46 pixels.",
-		ru = "Базовая ширина полосы: орда 100, элита и специалисты 140, боссы 190 пикселей. Базовый диаметр кольца: 26, 34 и 46 пикселей.",
+		en = "Base bar width: horde 100, elites and specialists 140, bosses 190 pixels. Base ring diameter: 26, 34 and 46; sphere: 22, 30 and 40 pixels.",
+		ru = "Базовая ширина полосы: орда 100, элита и специалисты 140, боссы 190 пикселей. Базовый диаметр кольца: 26, 34 и 46, сферы: 22, 30 и 40 пикселей.",
 	},
 	bar_height_offset = {
 		en = "Bar height offset, cm",

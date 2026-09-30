@@ -52,6 +52,24 @@ local RING_BY_CATEGORY = {
 }
 local RING_MAX_DOT = 12
 
+-- Сфера (bar_style = "sphere"): залитый круг игры (материал сканера), здоровье налито снизу вверх, как
+-- жидкость. Уровень — обрезка по UV (проход texture_uv), поэтому край круга гладкий. Контур — круг колеса
+-- команд, если загружен. Если материал сферы не загружен, маркер остаётся полосой.
+local SPHERE_MATERIAL = "content/ui/materials/backgrounds/scanner/scanner_drill_circle_filled"
+local SPHERE_RIM_MATERIAL = "content/ui/materials/hud/communication_wheel/middle_circle"
+local SPHERE_BACKGROUND_COLOR = { 170, 25, 25, 25 }
+local SPHERE_GHOST_COLOR = { 230, 240, 200, 200 }
+local SPHERE_RIM_COLOR = { 220, 0, 0, 0 }
+local SPHERE_TICK_COLOR = { 200, 0, 0, 0 }
+-- диаметр при масштабе 100 %
+local SPHERE_BY_CATEGORY = {
+	horde = 22,
+	elite = 30,
+	special = 30,
+	boss = 40,
+}
+local SPHERE_MAX_DIAMETER = 160
+
 -- ширина полосы при масштабе 100 %
 local WIDTH_BY_CATEGORY = {
 	horde = 100,
@@ -156,6 +174,54 @@ template.create_widget_defintion = function (template, scenegraph_id)
 		end
 	end
 
+	-- сфера: только если выбран этот вид и материал загружен
+	if mod.cfg and mod.cfg.bar_style == "sphere" and Status.resource_available("material", SPHERE_MATERIAL) then
+		passes[#passes + 1] = {
+			pass_type = "texture",
+			style_id = "sphere_background",
+			value = SPHERE_MATERIAL,
+			style = {
+				offset = { 0, 0, 1 },
+				size = { 0, 0 },
+				color = table.clone(SPHERE_BACKGROUND_COLOR),
+			},
+		}
+
+		for _, layer in ipairs({ "sphere_ghost", "sphere_fill" }) do
+			passes[#passes + 1] = {
+				pass_type = "texture_uv",
+				style_id = layer,
+				value = SPHERE_MATERIAL,
+				style = {
+					offset = { 0, 0, layer == "sphere_fill" and 3 or 2 },
+					size = { 0, 0 },
+					color = { 255, 255, 255, 255 },
+					uvs = {
+						{ 0, 0 },
+						{ 1, 1 },
+					},
+				},
+			}
+		end
+
+		for i = 1, NUM_TICKS do
+			passes[#passes + 1] = _rect("sphere_tick_" .. i, { 0, 0, 4 }, { 0, 1 }, table.clone(SPHERE_TICK_COLOR))
+		end
+
+		if Status.resource_available("material", SPHERE_RIM_MATERIAL) then
+			passes[#passes + 1] = {
+				pass_type = "texture",
+				style_id = "sphere_rim",
+				value = SPHERE_RIM_MATERIAL,
+				style = {
+					offset = { 0, 0, 5 },
+					size = { 0, 0 },
+					color = table.clone(SPHERE_RIM_COLOR),
+				},
+			}
+		end
+	end
+
 	local icons_available = Status.resource_available("material", ICON_MATERIAL)
 
 	for i = 1, MAX_DOTS do
@@ -224,6 +290,53 @@ template.on_enter = function (widget, marker, template)
 
 	marker.width = math.min(math.floor((WIDTH_BY_CATEGORY[category] or WIDTH_BY_CATEGORY.horde) * width_scale), MAX_WIDTH)
 	marker.dot_row_y = DOT_ROW_Y
+
+	if widget.style.sphere_fill then
+		local diameter = math.min(math.floor((SPHERE_BY_CATEGORY[category] or SPHERE_BY_CATEGORY.horde) * width_scale + 0.5), SPHERE_MAX_DIAMETER)
+		local style = widget.style
+		local left = -diameter * 0.5
+
+		marker.is_sphere = true
+		marker.sphere_diameter = diameter
+		marker.width = diameter
+		marker.dot_row_y = diameter + 3
+
+		for _, id in ipairs({ "sphere_background", "sphere_ghost", "sphere_fill" }) do
+			style[id].offset[1] = left
+			style[id].size[1] = diameter
+		end
+
+		style.sphere_background.size[2] = diameter
+
+		-- деления: горизонтальные хорды на высоте 25/50/75 %
+		local radius = diameter * 0.5
+
+		for i = 1, NUM_TICKS do
+			local level = i / (NUM_TICKS + 1)
+			local dy = (0.5 - level) * diameter
+			local chord = 2 * math.sqrt(math.max(radius * radius - dy * dy, 0))
+			local tick_style = style["sphere_tick_" .. i]
+
+			tick_style.offset[1] = math.floor(-chord * 0.5 + 0.5)
+			tick_style.offset[2] = math.floor(diameter * (1 - level) + 0.5)
+			tick_style.size[1] = math.floor(chord + 0.5)
+		end
+
+		if style.sphere_rim then
+			style.sphere_rim.offset[1] = left - 1
+			style.sphere_rim.offset[2] = -1
+			style.sphere_rim.size[1] = diameter + 2
+			style.sphere_rim.size[2] = diameter + 2
+		end
+
+		style.background.size[1] = 0
+		style.ghost_bar.size[1] = 0
+		style.bar.size[1] = 0
+
+		for i = 1, NUM_TICKS do
+			style["tick_" .. i].size[1] = 0
+		end
+	end
 
 	if widget.style.ring_1 then
 		local ring = RING_BY_CATEGORY[category] or RING_BY_CATEGORY.horde
@@ -329,6 +442,29 @@ local function _layout_ring(style, marker, health_fraction, ghost_fraction)
 
 		ring_color[1], ring_color[2], ring_color[3], ring_color[4] = color[1], color[2], color[3], color[4]
 	end
+end
+
+-- Сфера: слой обрезан по высоте — нижняя доля fraction круга. UV v идёт сверху вниз.
+local function _layout_sphere_layer(layer_style, diameter, fraction)
+	local height = diameter * fraction
+	local uvs = layer_style.uvs
+
+	layer_style.offset[2] = diameter - height
+	layer_style.size[2] = height
+	uvs[1][2] = 1 - fraction
+	uvs[2][2] = 1
+end
+
+local function _layout_sphere(style, marker, health_fraction, ghost_fraction)
+	local diameter = marker.sphere_diameter
+	local fill_color = style.sphere_fill.color
+	local bar_color = marker.bar_color
+	local ghost_color = style.sphere_ghost.color
+
+	fill_color[1], fill_color[2], fill_color[3], fill_color[4] = bar_color[1], bar_color[2], bar_color[3], bar_color[4]
+	ghost_color[1], ghost_color[2], ghost_color[3], ghost_color[4] = SPHERE_GHOST_COLOR[1], SPHERE_GHOST_COLOR[2], SPHERE_GHOST_COLOR[3], SPHERE_GHOST_COLOR[4]
+	_layout_sphere_layer(style.sphere_fill, diameter, math.clamp(health_fraction, 0, 1))
+	_layout_sphere_layer(style.sphere_ghost, diameter, math.clamp(math.max(ghost_fraction, health_fraction), 0, 1))
 end
 
 -- Значок эффекта: плоский материал или картинка баффа (если есть проход для неё).
@@ -532,7 +668,9 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 	local health_fraction, ghost_fraction = bar_logic:animated_health_fractions()
 
 	if health_fraction and ghost_fraction then
-		if marker.is_ring then
+		if marker.is_sphere then
+			_layout_sphere(style, marker, health_fraction, ghost_fraction)
+		elseif marker.is_ring then
 			_layout_ring(style, marker, health_fraction, ghost_fraction)
 		else
 			_layout_bar(style, marker.width, health_fraction, ghost_fraction, template.bar_settings.bar_spacing)
@@ -570,7 +708,7 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 
 		style.health_text.offset[1] = marker.width * 0.5 + 4
 		-- у кольца число — справа по центру кольца, у полосы — справа от полосы
-		style.health_text.offset[2] = marker.is_ring and marker.ring_radius + marker.ring_dot * 0.5 - 10 or BAR_HEIGHT * 0.5 - 10
+		style.health_text.offset[2] = marker.is_sphere and marker.sphere_diameter * 0.5 - 10 or marker.is_ring and marker.ring_radius + marker.ring_dot * 0.5 - 10 or BAR_HEIGHT * 0.5 - 10
 		content.health_text = health and string.format("%d", math.ceil(health)) or ""
 	else
 		content.health_text = ""

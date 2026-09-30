@@ -51,6 +51,7 @@ return {
 						options = {
 							{ text = "bar_style_bar", value = "bar" },
 							{ text = "bar_style_ring", value = "ring" },
+							{ text = "bar_style_sphere", value = "sphere" },
 						},
 					},
 					{
