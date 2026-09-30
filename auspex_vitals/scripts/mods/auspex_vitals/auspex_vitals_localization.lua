@@ -115,6 +115,14 @@ return {
 		ru = "Скрывает полосы врагов, которых не видно. Стоит немного производительности.",
 	},
 
+	hide_behind_enemies = {
+		en = "Hide behind closer enemies",
+		ru = "Скрывать за ближними врагами",
+	},
+	hide_behind_enemies_description = {
+		en = "A bar fades out when a closer enemy's model covers it.",
+		ru = "Полоса гаснет, если её закрывает модель врага, стоящего ближе.",
+	},
 	hide_game_damage_indicator = {
 		en = "Hide the game's damage indicator",
 		ru = "Скрывать индикатор урона игры",

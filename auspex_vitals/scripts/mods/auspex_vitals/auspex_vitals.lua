@@ -71,6 +71,7 @@ local function _read_settings()
 		show_health_number = mod:get("show_health_number") == true,
 		show_name = mod:get("show_name") == true,
 		line_of_sight = mod:get("line_of_sight") ~= false,
+		hide_behind_enemies = mod:get("hide_behind_enemies") ~= false,
 		hide_game_damage_indicator = mod:get("hide_game_damage_indicator") ~= false,
 		show_damage_numbers = mod:get("show_damage_numbers") ~= false,
 		damage_numbers_style = mod:get("damage_numbers_style") or "floating",

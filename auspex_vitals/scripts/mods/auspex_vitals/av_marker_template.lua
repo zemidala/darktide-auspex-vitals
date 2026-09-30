@@ -16,6 +16,14 @@ local MAX_WIDTH = 400
 local TICK_WIDTH = 2
 local FONT_TYPE = "proxima_nova_bold"
 local SMALL_FONT_SIZE = 14
+-- Перекрытие другими врагами: луч от камеры к полосе фильтром стрельбы игрока (попадает по телам).
+-- Стены проверяет сам движок (check_line_of_sight), его фильтр тела врагов не видит.
+local OCCLUSION_FILTER = "filter_player_character_shooting_raycast_dynamics"
+local OCCLUSION_INTERVAL = 0.1
+local OCCLUSION_MARGIN = 0.3 -- метров до полосы, где попадание уже не считается перекрытием
+local OCCLUSION_START = 1 -- луч начинается перед камерой, чтобы не задеть своего персонажа
+local OCCLUDED_ALPHA = 0.1
+local OCCLUSION_SPEED = 6
 local NUM_TICKS = 3 -- деления на 25, 50 и 75 %
 
 -- ширина полосы при масштабе 100 %
@@ -131,6 +139,9 @@ template.on_enter = function (widget, marker, template)
 	marker.dots = {}
 	marker.dot_count = 0
 	marker.dot_timer = 0
+	-- разнести проверки маркеров по кадрам
+	marker.occlusion_timer = math.random() * OCCLUSION_INTERVAL
+	marker.occlusion = 0
 
 	for i = 1, MAX_DOTS do
 		marker.dots[i] = {}
@@ -214,6 +225,68 @@ local function _layout_dots(widget, marker, show)
 	end
 end
 
+-- true, если луч от камеры к полосе раньше упирается в другого врага
+local function _is_occluded(parent, marker)
+	local camera = parent._player_camera
+	local physics_world = camera and parent:_physics_world()
+
+	if not physics_world then
+		return false
+	end
+
+	local camera_position = Camera.local_position(camera)
+	local to_bar = marker.position:unbox() - camera_position
+	local direction = Vector3.normalize(to_bar)
+	local distance = Vector3.length(to_bar) - OCCLUSION_MARGIN - OCCLUSION_START
+
+	if distance <= 0 then
+		return false
+	end
+
+	local from = camera_position + direction * OCCLUSION_START
+	local hit, _, _, _, actor = PhysicsWorld.raycast(physics_world, from, direction, distance, "closest", "collision_filter", OCCLUSION_FILTER)
+
+	if not hit or not actor then
+		return false
+	end
+
+	local hit_unit = Actor.unit(actor)
+
+	if not hit_unit or hit_unit == marker.unit then
+		return false
+	end
+
+	-- закрывать полосу может только другой враг
+	local breed = Status.breed(hit_unit)
+
+	return breed ~= nil and breed.breed_type == "minion"
+end
+
+local function _occlusion_alpha(parent, marker, cfg, dt)
+	if not cfg or not cfg.hide_behind_enemies then
+		return 1
+	end
+
+	marker.occlusion_timer = marker.occlusion_timer - dt
+
+	if marker.occlusion_timer <= 0 then
+		marker.occlusion_timer = OCCLUSION_INTERVAL
+		marker.is_occluded = _is_occluded(parent, marker)
+	end
+
+	local occlusion = marker.occlusion
+
+	if marker.is_occluded then
+		occlusion = math.min(occlusion + dt * OCCLUSION_SPEED, 1)
+	else
+		occlusion = math.max(occlusion - dt * OCCLUSION_SPEED, 0)
+	end
+
+	marker.occlusion = occlusion
+
+	return 1 - occlusion * (1 - OCCLUDED_ALPHA)
+end
+
 template.update_function = function (parent, ui_renderer, widget, marker, template, dt, t)
 	local unit = marker.unit
 	local content = widget.content
@@ -281,7 +354,7 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 	end
 
 	content.line_of_sight_progress = visibility
-	widget.alpha_multiplier = visibility
+	widget.alpha_multiplier = visibility * _occlusion_alpha(parent, marker, cfg, dt)
 end
 
 return template
