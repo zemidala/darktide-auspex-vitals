@@ -22,6 +22,12 @@ local OCCLUSION_FILTER = "filter_player_character_shooting_raycast_dynamics"
 local OCCLUSION_INTERVAL = 0.1
 local OCCLUSION_MARGIN = 0.3 -- метров до полосы, где попадание уже не считается перекрытием
 local OCCLUSION_START = 1 -- луч начинается перед камерой, чтобы не задеть своего персонажа
+local OCCLUSION_MAX_HITS = 16
+local HIT_INDEX_ACTOR = 4 -- формат результата PhysicsWorld.raycast "all", как в hit_scan.lua
+-- ВРЕМЕННО: диагностика перекрытия в лог, не чаще раза в DEBUG_INTERVAL секунд
+local DEBUG_OCCLUSION = true
+local DEBUG_INTERVAL = 5
+local _debug_next_t = 0
 local OCCLUDED_ALPHA = 0.1
 local OCCLUSION_SPEED = 6
 local NUM_TICKS = 3 -- деления на 25, 50 и 75 %
@@ -244,22 +250,51 @@ local function _is_occluded(parent, marker)
 	end
 
 	local from = camera_position + direction * OCCLUSION_START
-	local hit, _, _, _, actor = PhysicsWorld.raycast(physics_world, from, direction, distance, "closest", "collision_filter", OCCLUSION_FILTER)
+	-- "types", "both": тела врагов — динамические акторы, без этого луч видит только статику
+	local hits, num_hits = PhysicsWorld.raycast(physics_world, from, direction, distance, "all", "types", "both", "max_hits", OCCLUSION_MAX_HITS, "collision_filter", OCCLUSION_FILTER)
 
-	if not hit or not actor then
+	if not hits then
 		return false
 	end
 
-	local hit_unit = Actor.unit(actor)
+	if DEBUG_OCCLUSION then
+		local now = os.clock()
 
-	if not hit_unit or hit_unit == marker.unit then
-		return false
+		if now >= _debug_next_t then
+			_debug_next_t = now + DEBUG_INTERVAL
+
+			local names = {}
+
+			for i = 1, num_hits or #hits do
+				local actor = hits[i] and hits[i][HIT_INDEX_ACTOR]
+				local hit_unit = actor and Actor.unit(actor)
+				local breed = hit_unit and Status.breed(hit_unit)
+
+				names[#names + 1] = hit_unit == marker.unit and "self" or breed and breed.name or tostring(hit_unit)
+			end
+
+			local own_breed = Status.breed(marker.unit)
+
+			mod:info("occlusion ray to %s (%.1f m): %d hits [%s]", own_breed and own_breed.name or "?", distance, num_hits or #hits, table.concat(names, ", "))
+		end
 	end
 
-	-- закрывать полосу может только другой враг
-	local breed = Status.breed(hit_unit)
+	for i = 1, num_hits or #hits do
+		local hit = hits[i]
+		local actor = hit and hit[HIT_INDEX_ACTOR]
+		local hit_unit = actor and Actor.unit(actor)
 
-	return breed ~= nil and breed.breed_type == "minion"
+		-- закрывать полосу может только другой враг
+		if hit_unit and hit_unit ~= marker.unit then
+			local breed = Status.breed(hit_unit)
+
+			if breed and breed.breed_type == "minion" then
+				return true
+			end
+		end
+	end
+
+	return false
 end
 
 local function _occlusion_alpha(parent, marker, cfg, dt)
