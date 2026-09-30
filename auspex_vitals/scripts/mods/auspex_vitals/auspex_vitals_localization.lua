@@ -135,6 +135,30 @@ return {
 		en = "Your damage at the hit point. White — normal, yellow — weakspot, orange — critical. Hits landing together are summed.",
 		ru = "Ваш урон в точке попадания. Белый — обычный, жёлтый — слабое место, оранжевый — крит. Одновременные попадания складываются.",
 	},
+	damage_numbers_style = {
+		en = "Style",
+		ru = "Стиль",
+	},
+	damage_numbers_style_description = {
+		en = "At the hit point — numbers pop up where you hit and float up. Column — numbers stack next to the enemy: the newest at the bottom, older ones move up.",
+		ru = "У точки попадания — цифры появляются там, куда попали, и всплывают. Столбцом — цифры встают рядом с врагом: новая внизу, старые сдвигаются вверх.",
+	},
+	damage_numbers_floating = {
+		en = "At the hit point",
+		ru = "У точки попадания",
+	},
+	damage_numbers_column_right = {
+		en = "Column to the right",
+		ru = "Столбцом справа",
+	},
+	damage_numbers_column_left = {
+		en = "Column to the left",
+		ru = "Столбцом слева",
+	},
+	damage_numbers_scale = {
+		en = "Size",
+		ru = "Размер",
+	},
 	damage_numbers_dots = {
 		en = "Damage over time",
 		ru = "Периодический урон",

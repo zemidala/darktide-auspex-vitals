@@ -57,7 +57,7 @@ return {
 					{ setting_id = "show_health_number", type = "checkbox", default_value = false },
 					{ setting_id = "show_name", type = "checkbox", default_value = false },
 					{ setting_id = "line_of_sight", type = "checkbox", default_value = true },
-					{ setting_id = "hide_game_damage_indicator", type = "checkbox", default_value = false },
+					{ setting_id = "hide_game_damage_indicator", type = "checkbox", default_value = true },
 				},
 			},
 			{
@@ -65,6 +65,24 @@ return {
 				type = "group",
 				sub_widgets = {
 					{ setting_id = "show_damage_numbers", type = "checkbox", default_value = true },
+					{
+						setting_id = "damage_numbers_style",
+						type = "dropdown",
+						default_value = "floating",
+						options = {
+							{ text = "damage_numbers_floating", value = "floating" },
+							{ text = "damage_numbers_column_right", value = "column_right" },
+							{ text = "damage_numbers_column_left", value = "column_left" },
+						},
+					},
+					{
+						setting_id = "damage_numbers_scale",
+						type = "numeric",
+						default_value = 100,
+						range = { 50, 250 },
+						decimals_number = 0,
+						unit_text = "percent",
+					},
 					{ setting_id = "damage_numbers_dots", type = "checkbox", default_value = true },
 				},
 			},

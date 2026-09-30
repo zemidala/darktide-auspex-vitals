@@ -1,7 +1,10 @@
 -- Цифры урона игрока.
 -- Источник — отчёты об атаках (AttackReportManager.add_attack_result): точный урон, крит, слабое место, тип атаки.
 -- Рисуем пулом из POOL_SIZE маркеров по позиции: маркеры не создаются на каждое попадание,
--- а переиспользуются. Цифры привязаны к точке попадания: у добивающего удара юнит врага может не прийти.
+-- а переиспользуются.
+-- Стили (настройка damage_numbers_style):
+--   floating      — у точки попадания, всплывают вверх (у добивающего удара юнит врага может не прийти);
+--   column_right / column_left — столбцом сбоку от врага: новое число у врага, старые сдвигаются вверх.
 
 local mod = get_mod("auspex_vitals")
 local Status = mod.av_status
@@ -10,6 +13,11 @@ local UIWidget = require("scripts/managers/ui/ui_widget")
 
 local POOL_SIZE = 16
 local DURATION = 1.1
+local DURATION_COLUMN = 1.8 -- в столбце числа живут дольше: их читают как ленту
+local COLUMN_GAP = 45 -- отступ столбца от центра врага, пикселей
+local ROW_SPACING = 1.1 -- высота строки столбца в размерах шрифта
+local TEXT_BOX_WIDTH = 240
+local TEXT_BOX_HEIGHT = 60
 local FADE_START = 0.6 -- доля времени жизни, после которой цифра гаснет
 local RISE = 45 -- на сколько пикселей цифра поднимается за время жизни
 local JITTER = 25 -- случайный сдвиг по горизонтали, чтобы цифры не слипались
@@ -17,8 +25,8 @@ local JITTER = 25 -- случайный сдвиг по горизонтали, 
 local MERGE_HIT = 0.12
 local MERGE_DOT = 1
 local FONT_TYPE = "proxima_nova_bold"
-local FONT_SIZE = 20
-local CRIT_FONT_SIZE = 26
+local FONT_SIZE = 24
+local CRIT_FONT_SIZE = 30
 local HEAD_HEIGHT = 1.6
 
 local COLOR_NORMAL = { 255, 255, 255, 255 }
@@ -36,6 +44,7 @@ local _slots = {}
 for i = 1, POOL_SIZE do
 	_slots[i] = {
 		active = false,
+		index = i,
 	}
 end
 
@@ -56,8 +65,8 @@ template.create_widget_defintion = function (template, scenegraph_id)
 			value_id = "text",
 			value = "",
 			style = {
-				offset = { -100, -20, 10 },
-				size = { 200, 40 },
+				offset = { -TEXT_BOX_WIDTH * 0.5, -TEXT_BOX_HEIGHT * 0.5, 10 },
+				size = { TEXT_BOX_WIDTH, TEXT_BOX_HEIGHT },
 				font_type = FONT_TYPE,
 				font_size = FONT_SIZE,
 				drop_shadow = true,
@@ -92,6 +101,27 @@ local function _color_for(slot)
 	return COLOR_NORMAL
 end
 
+local function _head_position(unit)
+	return Unit.world_position(unit, 1) + Vector3(0, 0, HEAD_HEIGHT)
+end
+
+-- Номер строки в столбце: сколько чисел того же врага новее этого.
+local function _column_row(slot)
+	local row = 0
+
+	for i = 1, POOL_SIZE do
+		local other = _slots[i]
+
+		if other ~= slot and other.active and other.anchor_unit ~= nil and other.anchor_unit == slot.anchor_unit then
+			if other.start_t > slot.start_t or (other.start_t == slot.start_t and other.index > slot.index) then
+				row = row + 1
+			end
+		end
+	end
+
+	return row
+end
+
 template.update_function = function (parent, ui_renderer, widget, marker, template, dt, t)
 	local slot = marker.data.slot
 	local content = widget.content
@@ -102,24 +132,49 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 		return
 	end
 
+	local cfg = mod.cfg
+	local style_name = cfg and cfg.damage_numbers_style or "floating"
+	local is_column = style_name ~= "floating"
+	local duration = is_column and DURATION_COLUMN or DURATION
 	local age = t - slot.start_t
 
-	if age > DURATION then
+	if age > duration then
 		slot.active = false
 		content.text = ""
 
 		return
 	end
 
-	local progress = age / DURATION
+	local progress = age / duration
+	local scale = (cfg and cfg.damage_numbers_scale or 100) / 100
 	local style = widget.style.text
 	local color = _color_for(slot)
 	local text_color = style.text_color
+	local offset = style.offset
 
 	text_color[2], text_color[3], text_color[4] = color[2], color[3], color[4]
-	style.font_size = slot.crit and CRIT_FONT_SIZE or FONT_SIZE
-	style.offset[1] = -100 + slot.jitter
-	style.offset[2] = -20 - progress * RISE
+	style.font_size = (slot.crit and CRIT_FONT_SIZE or FONT_SIZE) * scale
+
+	if is_column then
+		local unit = slot.anchor_unit
+
+		-- столбец едет за врагом
+		if unit and ALIVE[unit] then
+			marker.world_position:store(_head_position(unit))
+		end
+
+		local row = unit and _column_row(slot) or 0
+		local is_right = style_name == "column_right"
+
+		style.text_horizontal_alignment = is_right and "left" or "right"
+		offset[1] = is_right and COLUMN_GAP or -COLUMN_GAP - TEXT_BOX_WIDTH
+		offset[2] = -TEXT_BOX_HEIGHT * 0.5 - row * FONT_SIZE * scale * ROW_SPACING
+	else
+		style.text_horizontal_alignment = "center"
+		offset[1] = -TEXT_BOX_WIDTH * 0.5 + slot.jitter * scale
+		offset[2] = -TEXT_BOX_HEIGHT * 0.5 - progress * RISE * scale
+	end
+
 	content.text = string.format("%d", math.floor(slot.value + 0.5))
 	widget.alpha_multiplier = progress < FADE_START and 1 or 1 - (progress - FADE_START) / (1 - FADE_START)
 end
@@ -207,6 +262,7 @@ local function _add(unit, position, damage, is_crit, is_weakspot, is_dot)
 	slot.start_t = now
 	slot.last_t = now
 	slot.jitter = (math.random() * 2 - 1) * JITTER
+	slot.anchor_unit = unit and ALIVE[unit] and unit or nil
 
 	if slot.marker then
 		slot.marker.world_position:store(position)
@@ -251,13 +307,16 @@ function DamageNumbers.on_attack_result(attacked_unit, attacking_unit, hit_world
 	end
 
 	local position = hit_world_position
+	local is_column = cfg.damage_numbers_style ~= "floating"
+	local unit_alive = attacked_unit and ALIVE[attacked_unit]
 
-	if not position or is_dot then
-		if not attacked_unit or not ALIVE[attacked_unit] then
+	-- у эффектов нет точки попадания; в столбце числа стоят у врага
+	if is_dot or is_column or not position then
+		if unit_alive then
+			position = _head_position(attacked_unit)
+		elseif is_dot or not position then
 			return
 		end
-
-		position = Unit.world_position(attacked_unit, 1) + Vector3(0, 0, HEAD_HEIGHT)
 	end
 
 	_add(attacked_unit, position, damage, is_critical_strike == true, hit_weakspot == true, is_dot)
