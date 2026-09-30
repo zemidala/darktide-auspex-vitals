@@ -53,14 +53,6 @@ return {
 		en = "Monstrosities and captains",
 		ru = "Чудовища и капитаны",
 	},
-	show_bosses_with_game_bar = {
-		en = "Bosses with the game's bar",
-		ru = "Боссы с полосой игры",
-	},
-	show_bosses_with_game_bar_description = {
-		en = "During a boss fight the game shows its own bar at the top of the screen. Off — our bar over such a boss is hidden.",
-		ru = "Во время схватки с боссом игра показывает свою полосу вверху экрана. Выкл — наша полоса над таким боссом скрывается.",
-	},
 	mode_always = {
 		en = "Always",
 		ru = "Всегда",
@@ -122,6 +114,18 @@ return {
 	hide_behind_enemies_description = {
 		en = "A bar fades out when a closer enemy's model covers it.",
 		ru = "Полоса гаснет, если её закрывает модель врага, стоящего ближе.",
+	},
+	group_game_elements = {
+		en = "Game's own elements",
+		ru = "Элементы игры",
+	},
+	hide_game_boss_bar = {
+		en = "Hide the game's boss bar",
+		ru = "Скрывать полосу босса игры",
+	},
+	hide_game_boss_bar_description = {
+		en = "The boss health bar at the top of the screen. On — only our bars are shown.",
+		ru = "Полоса здоровья босса вверху экрана. Вкл — остаются только наши полосы.",
 	},
 	hide_game_damage_indicator = {
 		en = "Hide the game's damage indicator",

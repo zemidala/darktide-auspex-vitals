@@ -106,14 +106,6 @@ function Status.category(unit)
 	return "horde"
 end
 
--- Идёт ли схватка с боссом, то есть видна ли его полоса игры вверху экрана.
--- Геттера у BossExtension нет, читаем поле; если после патча его не станет — считаем, что полосы нет.
-function Status.has_game_boss_bar(unit)
-	local boss_extension = ScriptUnit.has_extension(unit, "boss_system")
-
-	return boss_extension ~= nil and boss_extension._boss_encounter_started == true
-end
-
 -- Имя как в полосе игры: у боссов — их титул, у остальных — название породы.
 function Status.display_name(unit)
 	local boss_extension = ScriptUnit.has_extension(unit, "boss_system")

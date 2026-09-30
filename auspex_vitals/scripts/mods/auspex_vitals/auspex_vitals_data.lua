@@ -38,7 +38,6 @@ return {
 					mode_dropdown("mode_elite", "always"),
 					mode_dropdown("mode_special", "always"),
 					mode_dropdown("mode_boss", "always"),
-					{ setting_id = "show_bosses_with_game_bar", type = "checkbox", default_value = true },
 				},
 			},
 			{
@@ -58,6 +57,13 @@ return {
 					{ setting_id = "show_name", type = "checkbox", default_value = false },
 					{ setting_id = "line_of_sight", type = "checkbox", default_value = true },
 					{ setting_id = "hide_behind_enemies", type = "checkbox", default_value = true },
+				},
+			},
+			{
+				setting_id = "group_game_elements",
+				type = "group",
+				sub_widgets = {
+					{ setting_id = "hide_game_boss_bar", type = "checkbox", default_value = true },
 					{ setting_id = "hide_game_damage_indicator", type = "checkbox", default_value = true },
 				},
 			},

@@ -22,7 +22,6 @@ local PRESETS = {
 		mode_elite = "wounded",
 		mode_special = "always",
 		mode_boss = "always",
-		show_bosses_with_game_bar = false,
 		show_dots = false,
 		show_damage_numbers = false,
 		show_health_number = false,
@@ -35,7 +34,6 @@ local PRESETS = {
 		mode_elite = "always",
 		mode_special = "always",
 		mode_boss = "always",
-		show_bosses_with_game_bar = true,
 		show_dots = true,
 		show_damage_numbers = true,
 		show_health_number = false,
@@ -48,7 +46,6 @@ local PRESETS = {
 		mode_elite = "always",
 		mode_special = "always",
 		mode_boss = "always",
-		show_bosses_with_game_bar = true,
 		show_dots = true,
 		show_damage_numbers = true,
 		show_health_number = true,
@@ -78,7 +75,7 @@ local function _read_settings()
 		damage_numbers_scale = mod:get("damage_numbers_scale") or 100,
 		damage_numbers_column_offset = mod:get("damage_numbers_column_offset") or 120,
 		damage_numbers_dots = mod:get("damage_numbers_dots") ~= false,
-		show_bosses_with_game_bar = mod:get("show_bosses_with_game_bar") ~= false,
+		hide_game_boss_bar = mod:get("hide_game_boss_bar") ~= false,
 		prioritize_aim = mod:get("prioritize_aim") ~= false,
 		max_distance = mod:get("max_distance") or 25,
 		max_markers = mod:get("max_markers") or 20,
@@ -118,6 +115,15 @@ local function _remove_game_damage_indicators()
 		element:event_remove_world_marker(ids[i])
 	end
 end
+
+-- Полоса босса игры вверху экрана: не рисуем, если включено скрытие.
+mod:hook("HudElementBossHealth", "draw", function (func, self, ...)
+	if mod.cfg.hide_game_boss_bar and mod:is_enabled() then
+		return
+	end
+
+	return func(self, ...)
+end)
 
 mod:hook("HudElementWorldMarkers", "event_add_world_marker_unit", function (func, self, marker_type, ...)
 	if _skip_marker(marker_type) then
