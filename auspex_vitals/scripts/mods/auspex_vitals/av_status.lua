@@ -1,0 +1,202 @@
+-- Чтение состояния врага: категория, здоровье, периодический урон.
+-- Всё через проверки: после патча метод или шаблон может пропасть — тогда просто нет данных.
+
+local mod = get_mod("auspex_vitals")
+
+local Status = {}
+
+-- Порядок = приоритет показа. keyword — ключевое слово баффа, templates — шаблоны со стаками.
+-- Имена сверены с weapon_buff_templates.lua (игра 1.13.0).
+Status.DOTS = {
+	{
+		id = "warpfire",
+		keyword = "warpfire_burning",
+		templates = { "warp_fire" },
+		color = { 255, 90, 200, 255 },
+	},
+	{
+		id = "burning",
+		keyword = "burning",
+		templates = { "flamer_assault", "phosphor_burn" },
+		color = { 255, 255, 140, 30 },
+	},
+	{
+		id = "bleeding",
+		keyword = "bleeding",
+		templates = { "bleed", "bleed_long" },
+		color = { 255, 220, 30, 30 },
+	},
+	{
+		id = "toxin",
+		keyword = "toxin",
+		templates = { "neurotoxin_interval_buff", "neurotoxin_interval_buff2", "neurotoxin_interval_buff3" },
+		color = { 255, 120, 220, 60 },
+	},
+}
+
+local BOSS_TAGS = { "monster", "captain", "cultist_captain", "lord" }
+
+-- Оставить только шаблоны, которые есть в текущей версии игры.
+local function _filter_templates()
+	local ok, BuffTemplates = pcall(require, "scripts/settings/buff/buff_templates")
+
+	if not ok or type(BuffTemplates) ~= "table" then
+		mod:warning("BuffTemplates not found: stack counts disabled")
+
+		for _, dot in ipairs(Status.DOTS) do
+			dot.templates = {}
+		end
+
+		return
+	end
+
+	for _, dot in ipairs(Status.DOTS) do
+		local present = {}
+
+		for _, name in ipairs(dot.templates) do
+			if rawget(BuffTemplates, name) then
+				present[#present + 1] = name
+			else
+				mod:info("buff template '%s' not found, skipped", name)
+			end
+		end
+
+		dot.templates = present
+	end
+end
+
+_filter_templates()
+
+local _breed_cache = setmetatable({}, { __mode = "k" })
+
+function Status.breed(unit)
+	local breed = _breed_cache[unit]
+
+	if breed == nil then
+		local unit_data = ScriptUnit.has_extension(unit, "unit_data_system")
+
+		breed = unit_data and unit_data.breed and unit_data:breed() or false
+		_breed_cache[unit] = breed
+	end
+
+	return breed or nil
+end
+
+-- "boss" | "special" | "elite" | "horde" | nil
+function Status.category(unit)
+	local breed = Status.breed(unit)
+	local tags = breed and breed.tags
+
+	if not tags then
+		return nil
+	end
+
+	for i = 1, #BOSS_TAGS do
+		if tags[BOSS_TAGS[i]] then
+			return "boss"
+		end
+	end
+
+	if tags.special then
+		return "special"
+	elseif tags.elite then
+		return "elite"
+	end
+
+	return "horde"
+end
+
+function Status.health_extension(unit)
+	return ScriptUnit.has_extension(unit, "health_system")
+end
+
+function Status.health_fraction(health_extension)
+	if not health_extension or not health_extension.current_health_percent then
+		return 1
+	end
+
+	return health_extension:current_health_percent() or 1
+end
+
+function Status.current_health(health_extension)
+	if not health_extension or not health_extension.current_health then
+		return nil
+	end
+
+	return health_extension:current_health()
+end
+
+local function _has_keyword(buff_extension, keyword)
+	return buff_extension.has_keyword ~= nil and buff_extension:has_keyword(keyword)
+end
+
+-- Пишет в out[i] = { dot, stacks } и возвращает число записей (не больше max_count).
+-- stacks = 0 — эффект есть по ключевому слову, но число стаков неизвестно (например, огонь от луж).
+function Status.collect_dots(unit, out, max_count)
+	local buff_extension = ScriptUnit.has_extension(unit, "buff_system")
+
+	if not buff_extension then
+		return 0
+	end
+
+	local has_stacks = buff_extension.current_stacks ~= nil
+	local count = 0
+	local has_warpfire = false
+
+	for _, dot in ipairs(Status.DOTS) do
+		if count >= max_count then
+			break
+		end
+
+		local stacks = 0
+
+		if has_stacks then
+			for _, name in ipairs(dot.templates) do
+				stacks = stacks + buff_extension:current_stacks(name)
+			end
+		end
+
+		local shown = stacks > 0
+
+		-- варп-огонь тоже несёт ключевое слово burning: без своих стаков горение не показываем
+		if not shown and _has_keyword(buff_extension, dot.keyword) then
+			shown = not (dot.id == "burning" and has_warpfire)
+		end
+
+		if shown then
+			if dot.id == "warpfire" then
+				has_warpfire = true
+			end
+
+			count = count + 1
+
+			local entry = out[count]
+
+			entry.dot = dot
+			entry.stacks = stacks
+		end
+	end
+
+	return count
+end
+
+-- Раненый: потерял здоровье или горит/кровоточит.
+function Status.is_wounded(unit, health_extension)
+	if Status.health_fraction(health_extension) < 1 then
+		return true
+	end
+
+	local buff_extension = ScriptUnit.has_extension(unit, "buff_system")
+
+	if buff_extension then
+		for _, dot in ipairs(Status.DOTS) do
+			if _has_keyword(buff_extension, dot.keyword) then
+				return true
+			end
+		end
+	end
+
+	return false
+end
+
+return Status
