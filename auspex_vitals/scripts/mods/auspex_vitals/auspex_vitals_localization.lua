@@ -75,32 +75,24 @@ return {
 		ru = "Вид здоровья",
 	},
 	bar_style_description = {
-		en = "Bar — a thin bar over the enemy. Ring — a compact ring, damage eats it clockwise: dots (with a light trail of fresh damage) or smooth. Sphere — a filled circle, health poured bottom-up like liquid. Rings and the sphere take less space in a crowd.",
-		ru = "Полоса — тонкая полоса над врагом. Кольцо — компактное кольцо, урон «съедает» его по часовой стрелке: из точек (со светлым следом свежего урона) или гладкое. Сфера — залитый круг, здоровье налито снизу вверх, как жидкость. Кольца и сфера в толпе занимают меньше места.",
+		en = "Bar — a thin bar over the enemy. Sphere — a compact filled circle, health poured bottom-up like liquid; takes less space in a crowd.",
+		ru = "Полоса — тонкая полоса над врагом. Сфера — компактный залитый круг, здоровье налито снизу вверх, как жидкость; в толпе занимает меньше места.",
 	},
 	bar_style_bar = {
 		en = "Bar",
 		ru = "Полоса",
-	},
-	bar_style_ring = {
-		en = "Ring (dots)",
-		ru = "Кольцо (точки)",
-	},
-	bar_style_ring_smooth = {
-		en = "Ring (smooth)",
-		ru = "Кольцо (гладкое)",
 	},
 	bar_style_sphere = {
 		en = "Sphere",
 		ru = "Сфера",
 	},
 	bar_width = {
-		en = "Bar width / ring size",
-		ru = "Ширина полос / размер колец",
+		en = "Bar width / sphere size",
+		ru = "Ширина полос / размер сферы",
 	},
 	bar_width_description = {
-		en = "Base bar width: horde 100, elites and specialists 140, bosses 190 pixels. Base ring diameter: 26, 34 and 46; sphere: 22, 30 and 40 pixels.",
-		ru = "Базовая ширина полосы: орда 100, элита и специалисты 140, боссы 190 пикселей. Базовый диаметр кольца: 26, 34 и 46, сферы: 22, 30 и 40 пикселей.",
+		en = "Base bar width: horde 100, elites and specialists 140, bosses 190 pixels. Base sphere diameter: 22, 30 and 40 pixels.",
+		ru = "Базовая ширина полосы: орда 100, элита и специалисты 140, боссы 190 пикселей. Базовый диаметр сферы: 22, 30 и 40 пикселей.",
 	},
 	bar_height_offset = {
 		en = "Bar height offset, cm",
@@ -135,8 +127,8 @@ return {
 		ru = "Главный эффект в центре",
 	},
 	dot_center_description = {
-		en = "For rings and the sphere: the top-priority effect icon sits inside the shape, its stacks to the left; other effects stay in a row below.",
-		ru = "Для колец и сферы: значок самого важного эффекта — внутри фигуры, его стаки — слева; остальные эффекты — строкой ниже.",
+		en = "For the sphere: the top-priority effect icon sits inside it (white with a dark outline), its stacks to the left; other effects stay in a row above.",
+		ru = "Для сферы: значок самого важного эффекта — внутри неё (белый с тёмной обводкой), его стаки — слева; остальные эффекты — строкой выше.",
 	},
 	show_health_number = {
 		en = "Health number",

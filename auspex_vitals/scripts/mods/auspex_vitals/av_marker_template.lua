@@ -1,4 +1,4 @@
--- Шаблон маркера для HudElementWorldMarkers: здоровье врага (полоса, кольцо или сфера) и до MAX_DOTS
+-- Шаблон маркера для HudElementWorldMarkers: здоровье врага (полоса или сфера) и до MAX_DOTS
 -- меток периодического урона со стаками. Анимацию «призрачного» урона даёт HudHealthBarLogic из игры.
 --
 -- Раскладка каждый кадр, всё строится ВВЕРХ от точки маркера (она над головой врага), чтобы ничего
@@ -32,9 +32,14 @@ local DOT_TEXT_WIDTH = 30
 local SCALE_NEAR = 6
 local SCALE_FAR_MIN = 0.55
 
--- Перекрытие другими врагами: луч от камеры к полосе фильтром стрельбы игрока (попадает по телам).
--- Стены проверяет сам движок (check_line_of_sight), его фильтр тела врагов не видит.
+-- Видимость — своими лучами от камеры к маркеру, раз в OCCLUSION_INTERVAL:
+--   стены — фильтр статики стрельбы игрока (только неподвижная геометрия): полоса скрывается;
+--   другие враги — фильтр динамики стрельбы (тела): полоса гаснет до OCCLUDED_ALPHA.
+-- Проверку движка (check_line_of_sight) не используем: она считает помехой всё, что не сам юнит врага,
+-- в том числе его оружие и броню — вплотную полоса гасла без причины.
+local WALL_FILTER = "filter_player_character_shooting_raycast_statics"
 local OCCLUSION_FILTER = "filter_player_character_shooting_raycast_dynamics"
+local VISIBILITY_SPEED = 3
 local OCCLUSION_INTERVAL = 0.1
 local OCCLUSION_MARGIN = 0.3 -- метров до полосы, где попадание уже не считается перекрытием
 local OCCLUSION_START = 1 -- луч начинается перед камерой, чтобы не задеть своего персонажа
@@ -46,20 +51,6 @@ local HEAD_NODE = "j_head"
 local HEAD_MARGIN = 0.3 -- метров над костью головы
 local DEFAULT_BASE_HEIGHT = 2
 local NUM_TICKS = 3 -- деления на 25, 50 и 75 %
-
--- Кольцо из точек (bar_style = "ring"): RING_SEGMENTS прямоугольников по окружности, по RING_SEGMENTS / 4
--- на четверть; зазор между четвертями — деления 25/50/75 %. Точки не поворачиваем — материалы не нужны.
-local RING_SEGMENTS = 24
-local RING_QUARTER_GAP = math.rad(10)
-local RING_BACKGROUND_COLOR = { 160, 20, 20, 20 }
-local RING_GHOST_COLOR = { 255, 240, 200, 200 }
--- радиус и размер точки при масштабе 100 %
-local RING_BY_CATEGORY = {
-	horde = { radius = 13, dot = 3 },
-	elite = { radius = 17, dot = 4 },
-	special = { radius = 17, dot = 4 },
-	boss = { radius = 23, dot = 5 },
-}
 
 -- Сфера (bar_style = "sphere"): залитый круг игры (материал сканера), здоровье налито снизу вверх, как
 -- жидкость. Уровень — обрезка по UV (проход texture_uv), поэтому край круга гладкий. Контур — круг колеса
@@ -78,19 +69,12 @@ local SPHERE_BY_CATEGORY = {
 }
 local SHAPE_MAX_DIAMETER = 160
 
--- Гладкое кольцо (bar_style = "ring_smooth"): круг разборки предмета игры, у него своя круговая заливка
--- material_values.progress. Отражаем по горизонтали (uvs), чтобы урон «съедал» кольцо по часовой стрелке
--- от 12 часов. «Призрачного» урона нет: незаполненная часть материала непрозрачна.
-local RING_SMOOTH_MATERIAL = "content/ui/materials/icons/items/salvage_circle"
--- диаметр при масштабе 100 %
-local RING_SMOOTH_BY_CATEGORY = {
-	horde = 26,
-	elite = 34,
-	special = 34,
-	boss = 46,
-}
--- доля диаметра под значок эффекта в центре фигуры
+-- доля диаметра под значок эффекта в центре фигуры; значок белый с тёмной обводкой, чтобы не сливался
+-- с заливкой сферы того же цвета (цвет эффекта остаётся у числа стаков)
 local CENTER_ICON_FRACTION = 0.55
+local CENTER_ICON_COLOR = { 255, 255, 255, 255 }
+local CENTER_SHADOW_COLOR = { 220, 0, 0, 0 }
+local CENTER_SHADOW_GROW = 3 -- на сколько пикселей обводка больше значка
 
 -- ширина полосы при масштабе 100 %
 local WIDTH_BY_CATEGORY = {
@@ -115,7 +99,7 @@ template.name = "auspex_vitals_bar"
 -- Шаблон клонируется на каждый маркер, поэтому position_offset у каждого свой.
 template.unit_node = nil
 template.position_offset = { 0, 0, 2 }
-template.check_line_of_sight = true
+template.check_line_of_sight = false
 template.max_distance = 25
 template.screen_clamp = false
 template.bar_settings = {
@@ -140,7 +124,6 @@ template.fade_settings = {
 -- Дальность и проверка видимости — из настроек мода; шаблон клонируется при создании маркера.
 function template.apply_settings(cfg)
 	template.max_distance = cfg.max_distance
-	template.check_line_of_sight = cfg.line_of_sight
 	template.fade_settings.distance_max = cfg.max_distance
 	template.fade_settings.distance_min = cfg.max_distance * 0.8
 end
@@ -197,11 +180,7 @@ end
 local function _shape_kind()
 	local style = mod.cfg and mod.cfg.bar_style or "bar"
 
-	if style == "ring" then
-		return "ring"
-	elseif style == "ring_smooth" and Status.resource_available("material", RING_SMOOTH_MATERIAL) then
-		return "ring_smooth"
-	elseif style == "sphere" and Status.resource_available("material", SPHERE_MATERIAL) then
+	if style == "sphere" and Status.resource_available("material", SPHERE_MATERIAL) then
 		return "sphere"
 	end
 
@@ -227,22 +206,6 @@ template.create_widget_defintion = function (template, scenegraph_id)
 			tick.style.offset[3] = 5
 			passes[#passes + 1] = tick
 		end
-	elseif kind == "ring" then
-		for i = 1, RING_SEGMENTS do
-			passes[#passes + 1] = _rect("ring_" .. i, { 255, 255, 255, 255 })
-		end
-	elseif kind == "ring_smooth" then
-		local ring = _texture("ring_smooth", RING_SMOOTH_MATERIAL, "texture_uv", 3)
-
-		ring.style.material_values = {
-			progress = 1,
-		}
-		-- отражение по горизонтали: урон идёт по часовой стрелке
-		ring.style.uvs = {
-			{ 1, 0 },
-			{ 0, 1 },
-		}
-		passes[#passes + 1] = ring
 	elseif kind == "sphere" then
 		local background = _texture("sphere_background", SPHERE_MATERIAL, "texture", 1)
 
@@ -257,6 +220,23 @@ template.create_widget_defintion = function (template, scenegraph_id)
 			rim.style.color = table.clone(SPHERE_RIM_COLOR)
 			passes[#passes + 1] = rim
 		end
+	end
+
+	-- обводка значка главного эффекта в центре сферы: тот же плоский материал, чёрный и чуть крупнее
+	if kind == "sphere" and mod.cfg and mod.cfg.dot_center then
+		passes[#passes + 1] = {
+			pass_type = "texture",
+			style_id = "center_shadow",
+			value_id = "center_shadow",
+			style = {
+				offset = { 0, 0, 5 },
+				size = { 0, 0 },
+				color = table.clone(CENTER_SHADOW_COLOR),
+			},
+			visibility_function = function (content, style)
+				return content.center_shadow_on == true
+			end,
+		}
 	end
 
 	local icons_available = Status.resource_available("material", ICON_MATERIAL)
@@ -274,7 +254,7 @@ template.create_widget_defintion = function (template, scenegraph_id)
 			style_id = flat_id,
 			value_id = flat_id,
 			style = {
-				offset = { 0, 0, 5 },
+				offset = { 0, 0, 6 },
 				size = { ICON_SIZE, ICON_SIZE },
 				color = { 255, 255, 255, 255 },
 			},
@@ -331,17 +311,7 @@ template.on_enter = function (widget, marker, template)
 	-- базовые размеры фигуры (без масштаба по расстоянию); вид определяем по созданным проходам
 	local width_scale = (cfg and cfg.bar_width or 100) / 100
 
-	if style.ring_1 then
-		local ring = RING_BY_CATEGORY[category] or RING_BY_CATEGORY.horde
-
-		marker.kind = "ring"
-		marker.ring_radius = ring.radius * width_scale
-		marker.ring_dot = ring.dot * width_scale
-		marker.shape_width = marker.ring_radius * 2 + marker.ring_dot
-	elseif style.ring_smooth then
-		marker.kind = "ring_smooth"
-		marker.shape_width = math.min((RING_SMOOTH_BY_CATEGORY[category] or RING_SMOOTH_BY_CATEGORY.horde) * width_scale, SHAPE_MAX_DIAMETER)
-	elseif style.sphere_fill then
+	if style.sphere_fill then
 		marker.kind = "sphere"
 		marker.shape_width = math.min((SPHERE_BY_CATEGORY[category] or SPHERE_BY_CATEGORY.horde) * width_scale, SHAPE_MAX_DIAMETER)
 	else
@@ -350,7 +320,7 @@ template.on_enter = function (widget, marker, template)
 	end
 
 	marker.shape_height = marker.kind == "bar" and BAR_HEIGHT or marker.shape_width
-	-- значок главного эффекта в центре фигуры (кольца, сферы)
+	-- значок главного эффекта в центре сферы
 	marker.center_dot = marker.kind ~= "bar" and cfg and cfg.dot_center or false
 	marker.dots = {}
 	marker.dot_count = 0
@@ -358,6 +328,7 @@ template.on_enter = function (widget, marker, template)
 	-- разнести проверки маркеров по кадрам
 	marker.occlusion_timer = math.random() * OCCLUSION_INTERVAL
 	marker.occlusion = 0
+	marker.visibility = cfg and cfg.line_of_sight and 0 or 1
 
 	for i = 1, MAX_DOTS do
 		marker.dots[i] = {}
@@ -436,52 +407,6 @@ local function _layout_bar(style, width, height, health_fraction, ghost_fraction
 	end
 end
 
--- Кольцо из точек: урон «съедает» кольцо по часовой стрелке от 12 часов, как стрелка таймера.
--- Точка закрашена цветом здоровья, если на неё приходится оставшееся здоровье, светлым — «призрачный»
--- урон, тёмным — потерянное. Нижний край кольца — на точке маркера.
-local function _layout_ring(style, marker, scale, health_fraction, ghost_fraction)
-	local radius = marker.ring_radius * scale
-	local dot = math.max(math.floor(marker.ring_dot * scale + 0.5), 2)
-	local center_y = -radius - dot * 0.5
-	local per_quarter = RING_SEGMENTS / 4
-	local quarter_arc = math.pi * 0.5 - RING_QUARTER_GAP
-	local health_color = marker.bar_color
-
-	for k = 1, RING_SEGMENTS do
-		local ring_style = style["ring_" .. k]
-		local quarter = math.floor((k - 1) / per_quarter)
-		local index_in_quarter = (k - 1) % per_quarter
-		local angle = quarter * math.pi * 0.5 + RING_QUARTER_GAP * 0.5 + (index_in_quarter + 0.5) * quarter_arc / per_quarter
-		local offset = ring_style.offset
-		local size = ring_style.size
-
-		-- угол от 12 часов по часовой стрелке; y экрана растёт вниз
-		offset[1] = math.floor(math.sin(angle) * radius - dot * 0.5 + 0.5)
-		offset[2] = math.floor(center_y - math.cos(angle) * radius - dot * 0.5 + 0.5)
-		size[1] = dot
-		size[2] = dot
-
-		local position = 1 - (k - 0.5) / RING_SEGMENTS
-		local color = position <= health_fraction and health_color or position <= ghost_fraction and RING_GHOST_COLOR or RING_BACKGROUND_COLOR
-		local ring_color = ring_style.color
-
-		ring_color[1], ring_color[2], ring_color[3], ring_color[4] = color[1], color[2], color[3], color[4]
-	end
-end
-
-local function _layout_ring_smooth(style, marker, diameter, health_fraction)
-	local ring_style = style.ring_smooth
-	local ring_color = ring_style.color
-	local bar_color = marker.bar_color
-
-	ring_color[1], ring_color[2], ring_color[3], ring_color[4] = bar_color[1], bar_color[2], bar_color[3], bar_color[4]
-	ring_style.offset[1] = -diameter * 0.5
-	ring_style.offset[2] = -diameter
-	ring_style.size[1] = diameter
-	ring_style.size[2] = diameter
-	ring_style.material_values.progress = math.clamp(health_fraction, 0, 1)
-end
-
 -- Сфера: слой обрезан по высоте — нижняя доля fraction круга. UV v идёт сверху вниз.
 local function _layout_sphere_layer(layer_style, diameter, fraction)
 	local height = diameter * fraction
@@ -532,7 +457,7 @@ local function _dot_visual(style, i, dot)
 end
 
 -- Одна ячейка эффекта: значок (плоский / баффа / цветная метка) в точке (x, y) размера icon_size.
-local function _layout_dot_icon(widget, i, dot, x, y, icon_size, gradient)
+local function _layout_dot_icon(widget, i, dot, x, y, icon_size, gradient, is_center)
 	local style = widget.style
 	local content = widget.content
 	local chip_style = style["dot_chip_" .. i]
@@ -543,10 +468,28 @@ local function _layout_dot_icon(widget, i, dot, x, y, icon_size, gradient)
 	local color = dot.color
 	local kind, path = _dot_visual(style, i, dot)
 
+	local shadow = style.center_shadow
+
+	if shadow and is_center then
+		content.center_shadow_on = kind == "flat"
+	end
+
 	if kind == "flat" then
 		local flat_color = flat_style.color
+		local icon_color = is_center and CENTER_ICON_COLOR or color
 
-		flat_color[2], flat_color[3], flat_color[4] = color[2], color[3], color[4]
+		flat_color[2], flat_color[3], flat_color[4] = icon_color[2], icon_color[3], icon_color[4]
+
+		if shadow and is_center then
+			local grow = CENTER_SHADOW_GROW
+
+			content.center_shadow = path
+			shadow.offset[1] = x - grow
+			shadow.offset[2] = y - grow
+			shadow.size[1] = icon_size + grow * 2
+			shadow.size[2] = icon_size + grow * 2
+		end
+
 		flat_style.offset[1] = x
 		flat_style.offset[2] = y
 		flat_style.size[1] = icon_size
@@ -592,6 +535,10 @@ end
 local function _hide_dot(widget, i)
 	local content = widget.content
 
+	if i == 1 then
+		content.center_shadow_on = false
+	end
+
 	widget.style["dot_chip_" .. i].size[1] = 0
 	content["dot_text_" .. i] = ""
 	content["dot_icon_visible_" .. i] = false
@@ -603,7 +550,7 @@ local function _stacks_width(stacks)
 	return stacks > 9 and 20 or stacks > 0 and 12 or 0
 end
 
--- Эффекты: строкой по центру над фигурой (row_y — верх строки). С «главным эффектом в центре» первый
+-- Эффекты: строкой по центру над фигурой (row_y — верх строки). С «главным эффектом в центре» (сфера) первый
 -- эффект — внутри фигуры, его стаки — слева от неё, остальные — строкой.
 local function _layout_dots(widget, marker, count, scale, shape_width, shape_height, row_y)
 	local style = widget.style
@@ -640,7 +587,7 @@ local function _layout_dots(widget, marker, count, scale, shape_width, shape_hei
 				local size = math.floor(shape_width * CENTER_ICON_FRACTION * scale + 0.5)
 				local center_y = -shape_height * 0.5
 
-				_layout_dot_icon(widget, i, dot, -size * 0.5, center_y - size * 0.5, size, gradient)
+				_layout_dot_icon(widget, i, dot, -size * 0.5, center_y - size * 0.5, size, gradient, true)
 
 				-- стаки главного эффекта — слева от фигуры (справа — число здоровья)
 				text_style.text_horizontal_alignment = "right"
@@ -658,13 +605,13 @@ local function _layout_dots(widget, marker, count, scale, shape_width, shape_hei
 	end
 end
 
--- true, если луч от камеры к полосе раньше упирается в другого врага
-local function _is_occluded(parent, marker)
+-- Что закрывает маркер: "wall" — неподвижная геометрия, "enemy" — тело другого врага, nil — ничего.
+local function _blocker(parent, marker, cfg)
 	local camera = parent._player_camera
 	local physics_world = camera and parent:_physics_world()
 
 	if not physics_world then
-		return false
+		return nil
 	end
 
 	local camera_position = Camera.local_position(camera)
@@ -677,11 +624,25 @@ local function _is_occluded(parent, marker)
 	end
 
 	local from = camera_position + direction * OCCLUSION_START
+
+	-- стены: только статика, снаряжение врагов (динамика) сюда не попадает
+	if cfg.line_of_sight then
+		local wall_hit = PhysicsWorld.raycast(physics_world, from, direction, distance, "any", "types", "statics", "collision_filter", WALL_FILTER)
+
+		if wall_hit then
+			return "wall"
+		end
+	end
+
+	if not cfg.hide_behind_enemies then
+		return nil
+	end
+
 	-- "types", "both": тела врагов — динамические акторы, без этого луч видит только статику
 	local hits, num_hits = PhysicsWorld.raycast(physics_world, from, direction, distance, "all", "types", "both", "max_hits", OCCLUSION_MAX_HITS, "collision_filter", OCCLUSION_FILTER)
 
 	if not hits then
-		return false
+		return nil
 	end
 
 	for i = 1, num_hits or #hits do
@@ -694,16 +655,17 @@ local function _is_occluded(parent, marker)
 			local breed = Status.breed(hit_unit)
 
 			if breed and breed.breed_type == "minion" then
-				return true
+				return "enemy"
 			end
 		end
 	end
 
-	return false
+	return nil
 end
 
-local function _occlusion_alpha(parent, marker, cfg, dt)
-	if not cfg or not cfg.hide_behind_enemies then
+-- Прозрачность маркера по видимости: за стеной — плавно в ноль, за другим врагом — до OCCLUDED_ALPHA.
+local function _visibility_alpha(parent, marker, cfg, dt)
+	if not cfg or (not cfg.line_of_sight and not cfg.hide_behind_enemies) then
 		return 1
 	end
 
@@ -711,20 +673,29 @@ local function _occlusion_alpha(parent, marker, cfg, dt)
 
 	if marker.occlusion_timer <= 0 then
 		marker.occlusion_timer = OCCLUSION_INTERVAL
-		marker.is_occluded = _is_occluded(parent, marker)
+		marker.blocker = _blocker(parent, marker, cfg)
 	end
 
+	local blocker = marker.blocker
+	local visibility = marker.visibility or 1
 	local occlusion = marker.occlusion
 
-	if marker.is_occluded then
+	if blocker == "wall" then
+		visibility = math.max(visibility - dt * VISIBILITY_SPEED, 0)
+	else
+		visibility = math.min(visibility + dt * VISIBILITY_SPEED, 1)
+	end
+
+	if blocker == "enemy" then
 		occlusion = math.min(occlusion + dt * OCCLUSION_SPEED, 1)
 	else
 		occlusion = math.max(occlusion - dt * OCCLUSION_SPEED, 0)
 	end
 
+	marker.visibility = visibility
 	marker.occlusion = occlusion
 
-	return 1 - occlusion * (1 - OCCLUDED_ALPHA)
+	return visibility * (1 - occlusion * (1 - OCCLUDED_ALPHA))
 end
 
 -- Высота точки маркера над корнем юнита на следующий кадр: движок прибавляет position_offset к корню.
@@ -791,11 +762,7 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 	health_fraction = marker.health_fraction
 	ghost_fraction = marker.ghost_fraction
 
-	if kind == "ring" then
-		_layout_ring(style, marker, scale, health_fraction, ghost_fraction)
-	elseif kind == "ring_smooth" then
-		_layout_ring_smooth(style, marker, shape_width, health_fraction)
-	elseif kind == "sphere" then
+	if kind == "sphere" then
 		_layout_sphere(style, marker, shape_width, health_fraction, ghost_fraction)
 	else
 		_layout_bar(style, shape_width, math.max(shape_height, 2), health_fraction, ghost_fraction, template.bar_settings.bar_spacing)
@@ -845,23 +812,7 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 		content.health_text = ""
 	end
 
-	-- плавное появление/скрытие по проверке видимости, как у полос игры
-	local visibility = content.line_of_sight_progress or (template.check_line_of_sight and 0 or 1)
-
-	if template.check_line_of_sight and marker.raycast_initialized then
-		local speed = 3
-
-		if marker.raycast_result then
-			visibility = math.max(visibility - dt * speed, 0)
-		else
-			visibility = math.min(visibility + dt * speed, 1)
-		end
-	elseif not template.check_line_of_sight then
-		visibility = 1
-	end
-
-	content.line_of_sight_progress = visibility
-	widget.alpha_multiplier = visibility * _occlusion_alpha(parent, marker, cfg, dt)
+	widget.alpha_multiplier = _visibility_alpha(parent, marker, cfg, dt)
 end
 
 return template

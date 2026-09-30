@@ -50,8 +50,6 @@ return {
 						default_value = "bar",
 						options = {
 							{ text = "bar_style_bar", value = "bar" },
-							{ text = "bar_style_ring", value = "ring" },
-							{ text = "bar_style_ring_smooth", value = "ring_smooth" },
 							{ text = "bar_style_sphere", value = "sphere" },
 						},
 					},
