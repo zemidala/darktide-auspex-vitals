@@ -10,17 +10,20 @@ local UIWidget = require("scripts/managers/ui/ui_widget")
 
 local MAX_DOTS = 3
 local DOT_UPDATE_INTERVAL = 0.2
-local BAR_HEIGHT = 5
-local MAX_WIDTH = 140
+local BAR_HEIGHT = 7
+-- запас для определения виджета: ширина полосы с учётом настройки масштаба не больше этой
+local MAX_WIDTH = 400
+local TICK_WIDTH = 2
 local FONT_TYPE = "proxima_nova_bold"
 local SMALL_FONT_SIZE = 14
 local NUM_TICKS = 3 -- деления на 25, 50 и 75 %
 
+-- ширина полосы при масштабе 100 %
 local WIDTH_BY_CATEGORY = {
-	horde = 60,
-	elite = 90,
-	special = 90,
-	boss = MAX_WIDTH,
+	horde = 100,
+	elite = 140,
+	special = 140,
+	boss = 190,
 }
 
 local BAR_COLOR_BY_CATEGORY = {
@@ -102,11 +105,11 @@ template.create_widget_defintion = function (template, scenegraph_id)
 		_rect("background", { 0, 0, 1 }, { MAX_WIDTH, BAR_HEIGHT }, { 160, 20, 20, 20 }),
 		_rect("ghost_bar", { 0, 0, 2 }, { 0, BAR_HEIGHT }, { 255, 240, 200, 200 }),
 		_rect("bar", { 0, 0, 3 }, { 0, BAR_HEIGHT }, { 255, 200, 40, 40 }),
-		_rect("tick_1", { 0, 0, 5 }, { 1, BAR_HEIGHT }, { 170, 0, 0, 0 }),
-		_rect("tick_2", { 0, 0, 5 }, { 1, BAR_HEIGHT }, { 170, 0, 0, 0 }),
-		_rect("tick_3", { 0, 0, 5 }, { 1, BAR_HEIGHT }, { 170, 0, 0, 0 }),
+		_rect("tick_1", { 0, 0, 5 }, { TICK_WIDTH, BAR_HEIGHT }, { 255, 0, 0, 0 }),
+		_rect("tick_2", { 0, 0, 5 }, { TICK_WIDTH, BAR_HEIGHT }, { 255, 0, 0, 0 }),
+		_rect("tick_3", { 0, 0, 5 }, { TICK_WIDTH, BAR_HEIGHT }, { 255, 0, 0, 0 }),
 		_text("name_text", { -MAX_WIDTH, -22, 4 }, { MAX_WIDTH * 2, 20 }, SMALL_FONT_SIZE, "center", "bottom"),
-		_text("health_text", { 0, -7, 4 }, { 80, 20 }, SMALL_FONT_SIZE, "left", "center"),
+		_text("health_text", { 0, BAR_HEIGHT * 0.5 - 10, 4 }, { 80, 20 }, SMALL_FONT_SIZE, "left", "center"),
 	}
 
 	for i = 1, MAX_DOTS do
@@ -122,7 +125,9 @@ template.on_enter = function (widget, marker, template)
 	local category = data.category or "horde"
 
 	marker.bar_logic = HudHealthBarLogic:new(template.bar_settings)
-	marker.width = WIDTH_BY_CATEGORY[category] or WIDTH_BY_CATEGORY.horde
+	local width_scale = (mod.cfg and mod.cfg.bar_width or 100) / 100
+
+	marker.width = math.min(math.floor((WIDTH_BY_CATEGORY[category] or WIDTH_BY_CATEGORY.horde) * width_scale), MAX_WIDTH)
 	marker.dots = {}
 	marker.dot_count = 0
 	marker.dot_timer = 0
@@ -167,7 +172,7 @@ local function _layout_bar(style, width, health_fraction, ghost_fraction, spacin
 	style.background.size[1] = background_width
 
 	for i = 1, NUM_TICKS do
-		style["tick_" .. i].offset[1] = math.floor(left + width * i / (NUM_TICKS + 1))
+		style["tick_" .. i].offset[1] = math.floor(left + width * i / (NUM_TICKS + 1) - TICK_WIDTH * 0.5)
 	end
 end
 

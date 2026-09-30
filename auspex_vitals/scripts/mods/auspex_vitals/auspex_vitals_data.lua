@@ -45,6 +45,14 @@ return {
 				setting_id = "group_display",
 				type = "group",
 				sub_widgets = {
+					{
+						setting_id = "bar_width",
+						type = "numeric",
+						default_value = 100,
+						range = { 50, 200 },
+						decimals_number = 0,
+						unit_text = "percent",
+					},
 					{ setting_id = "show_dots", type = "checkbox", default_value = true },
 					{ setting_id = "show_health_number", type = "checkbox", default_value = false },
 					{ setting_id = "show_name", type = "checkbox", default_value = false },

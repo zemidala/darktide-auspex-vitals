@@ -78,6 +78,18 @@ return {
 		en = "Display",
 		ru = "Отображение",
 	},
+	bar_width = {
+		en = "Bar width",
+		ru = "Ширина полос",
+	},
+	bar_width_description = {
+		en = "Base width: horde 100, elites and specialists 140, bosses 190 pixels.",
+		ru = "Базовая ширина: орда 100, элита и специалисты 140, боссы 190 пикселей.",
+	},
+	percent = {
+		en = "%%",
+		ru = "%%",
+	},
 	show_dots = {
 		en = "Damage over time",
 		ru = "Периодический урон",

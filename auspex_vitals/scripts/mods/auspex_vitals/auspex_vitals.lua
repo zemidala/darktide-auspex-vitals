@@ -62,6 +62,7 @@ local function _read_settings()
 			boss = mod:get("mode_boss") or "always",
 		},
 		show_dots = mod:get("show_dots") ~= false,
+		bar_width = mod:get("bar_width") or 100,
 		show_health_number = mod:get("show_health_number") == true,
 		show_name = mod:get("show_name") == true,
 		line_of_sight = mod:get("line_of_sight") ~= false,
