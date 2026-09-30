@@ -13,9 +13,9 @@ local MAX_DOTS = 3
 local ICON_MATERIAL = "content/ui/materials/icons/buffs/hud/buff_container_with_background"
 local ICON_GRADIENT = "content/ui/textures/color_ramps/talent_default"
 local ICON_SIZE = 18
-local DOT_ROW_Y = BAR_HEIGHT + 3
 local DOT_UPDATE_INTERVAL = 0.2
 local BAR_HEIGHT = 7
+local DOT_ROW_Y = BAR_HEIGHT + 3
 -- запас для определения виджета: ширина полосы с учётом настройки масштаба не больше этой
 local MAX_WIDTH = 400
 local TICK_WIDTH = 2
