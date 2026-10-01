@@ -23,6 +23,20 @@
 | Токсин | `neurotoxin_interval_buff`, `…2`, `…3`, `exploding_toxin_interval_buff` (+ `broker_buff_templates.lua`) | `toxin` | 30–31 |
 | Электрошок | `cryptic_electrocution_default`, `cryptic_discharge_*`, `arc_grenade_electrocution`, `shock_grenade_interval`, `power_maul_stun` и др. | `electrocuted`, `electrocuted_arc*`, `electrocuted_chain_lightning`, `electrocuted_shock_mine` | 1 (не стакается) |
 
+### Дебаффы (0.2)
+
+Не по шаблонам, а по итоговым характеристикам врага `buff_extension:stat_buffs()` — клиент их тоже пересчитывает (`MinionBuffExtension.update` → `_update_stat_buffs_and_keywords`). Неизвестное имя даёт базовое значение или nil (ленивая метатаблица), не падает.
+
+| Дебафф | Характеристики (произведение − 1) | Где игра их читает |
+|---|---|---|
+| Хрупкость брони | `rending_multiplier` | `damage_calculation.lua` `_rending_multiplier` |
+| Получаемый урон | `damage_taken_multiplier × damage_taken_modifier` | `damage_calculation.lua:590` |
+| …в ближнем бою | `melee_damage_taken_multiplier × melee_damage_taken_modifier` | там же |
+| …от стрельбы | `ranged_damage_taken_multiplier` | там же |
+| Ошеломление | `impact_modifier` | `stagger_calculation.lua:192` |
+
+Показываются в строке эффектов после периодического урона (всего до 5 значков), подпись — процент. Значки — `havoc_mutator_*` из постоянного пакета `circumstances`; значки оружия (`weapons/actions/*`) — только если загружены, иначе цветная метка. Выбор — `/av_icons`.
+
 Для иконки проверять ключевое слово (`has_keyword`) — это дёшево и переживёт новые шаблоны. Число стаков брать через `current_stacks` по известным именам. Если имени в `BuffTemplates` нет, пропускать его: защита от патчей.
 
 ## Каркас отображения: маркеры мира

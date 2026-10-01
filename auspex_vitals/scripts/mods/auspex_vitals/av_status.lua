@@ -64,6 +64,50 @@ Status.DOTS = {
 	},
 }
 
+-- Дебаффы: не шаблоны, а итоговые характеристики врага, на которые игра умножает урон и ошеломление
+-- (damage_calculation.lua, stagger_calculation.lua). Так подхватываются любые таланты и благословения.
+-- value = произведение stats - 1; показываем, если больше MIN_DEBUFF. Значки — из постоянного пакета
+-- circumstances (havoc_*) или с проверкой загрузки; без значка — цветная метка.
+local MIN_DEBUFF = 0.01
+
+Status.DEBUFFS = {
+	{
+		id = "brittle", -- хрупкость брони
+		stats = { "rending_multiplier" },
+		flat = "content/ui/materials/icons/circumstances/havoc/havoc_mutator_rotten_armor",
+		color = { 255, 170, 200, 230 },
+		plus = false,
+	},
+	{
+		id = "vulnerable", -- получает больше урона от всего
+		stats = { "damage_taken_multiplier", "damage_taken_modifier" },
+		flat = "content/ui/materials/icons/circumstances/havoc/havoc_mutator_skin",
+		color = { 255, 255, 120, 170 },
+		plus = true,
+	},
+	{
+		id = "melee_vulnerable",
+		stats = { "melee_damage_taken_multiplier", "melee_damage_taken_modifier" },
+		flat = "content/ui/materials/icons/weapons/actions/melee",
+		color = { 255, 255, 190, 120 },
+		plus = true,
+	},
+	{
+		id = "ranged_vulnerable",
+		stats = { "ranged_damage_taken_multiplier" },
+		flat = "content/ui/materials/icons/weapons/actions/hipfire",
+		color = { 255, 150, 230, 255 },
+		plus = true,
+	},
+	{
+		id = "stagger", -- легче ошеломить
+		stats = { "impact_modifier" },
+		flat = "content/ui/materials/icons/circumstances/havoc/havoc_mutator_rampaging_enemies",
+		color = { 255, 240, 240, 140 },
+		plus = true,
+	},
+}
+
 -- Загружен ли ресурс сейчас. Иконки и материалы берём из пакетов игры, которые мы не грузим сами:
 -- рисовать незагруженную текстуру нельзя, поэтому без неё показываем цветную метку.
 local _resource_cache = {}
@@ -313,6 +357,48 @@ function Status.collect_dots(unit, out, max_count)
 
 			entry.dot = dot
 			entry.stacks = stacks
+			entry.label = nil
+		end
+	end
+
+	return count
+end
+
+-- Дописывает дебаффы в out после count уже собранных записей; возвращает новое число записей.
+-- entry.label — подпись вместо стаков: "40%" (хрупкость) или "+25%".
+function Status.collect_debuffs(unit, out, count, max_count)
+	local buff_extension = ScriptUnit.has_extension(unit, "buff_system")
+	local stat_buffs = buff_extension and buff_extension.stat_buffs and buff_extension:stat_buffs()
+
+	if type(stat_buffs) ~= "table" then
+		return count
+	end
+
+	for _, debuff in ipairs(Status.DEBUFFS) do
+		if count >= max_count then
+			break
+		end
+
+		local value = 1
+
+		for _, stat in ipairs(debuff.stats) do
+			local stat_value = stat_buffs[stat]
+
+			if type(stat_value) == "number" then
+				value = value * stat_value
+			end
+		end
+
+		value = value - 1
+
+		if value >= MIN_DEBUFF then
+			count = count + 1
+
+			local entry = out[count]
+
+			entry.dot = debuff
+			entry.stacks = 0
+			entry.label = string.format(debuff.plus and "+%d%%" or "%d%%", math.floor(value * 100 + 0.5))
 		end
 	end
 

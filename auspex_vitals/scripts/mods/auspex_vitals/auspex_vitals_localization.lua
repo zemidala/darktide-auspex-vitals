@@ -134,6 +134,14 @@ return {
 		en = "Burning, warpfire, electrocution, bleeding and toxin under the bar, with stack counts where the effect stacks.",
 		ru = "Горение, варп-огонь, электрошок, кровотечение и токсин под полосой, с числом стаков, если эффект стакается.",
 	},
+	show_debuffs = {
+		en = "Debuffs",
+		ru = "Дебаффы",
+	},
+	show_debuffs_description = {
+		en = "After the damage-over-time icons: brittleness (armor rending), extra damage taken (all / melee / ranged) and easier stagger, in percent. Taken from the enemy's real stats, so any talent or blessing counts.",
+		ru = "После значков периодического урона: хрупкость брони, повышенный получаемый урон (весь / в ближнем бою / от стрельбы) и лёгкость ошеломления — в процентах. Берётся из настоящих характеристик врага, поэтому учитывается любой талант или благословение.",
+	},
 	shrink_with_distance = {
 		en = "Shrink with distance",
 		ru = "Уменьшать с расстоянием",
@@ -443,6 +451,26 @@ return {
 	icon_preview_bleeding = {
 		en = "Bleeding",
 		ru = "Кровотечение",
+	},
+	icon_preview_brittle = {
+		en = "Brittleness",
+		ru = "Хрупкость",
+	},
+	icon_preview_vulnerable = {
+		en = "Damage taken",
+		ru = "Получаемый урон",
+	},
+	icon_preview_melee_vulnerable = {
+		en = "Melee damage taken",
+		ru = "Урон в ближнем бою",
+	},
+	icon_preview_ranged_vulnerable = {
+		en = "Ranged damage taken",
+		ru = "Урон от стрельбы",
+	},
+	icon_preview_stagger = {
+		en = "Stagger",
+		ru = "Ошеломление",
 	},
 	icon_preview_toxin = {
 		en = "Toxin",

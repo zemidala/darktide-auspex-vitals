@@ -8,7 +8,7 @@ local UIWidget = require("scripts/managers/ui/ui_widget")
 
 local ICON_SIZE = 56
 local CELL_WIDTH = 130
-local ROW_HEIGHT = 96
+local ROW_HEIGHT = 80
 local LABEL_WIDTH = 170
 local ANCHOR_DISTANCE = 5
 local BUFFS = "content/ui/textures/icons/buffs/hud/"
@@ -71,6 +71,52 @@ local ROWS = {
 			BUFFS .. "states_toxic_cloud_buff_hud",
 			BUFFS .. "broker/broker_damage_after_toxined_enemies",
 			BUFFS .. "broker/broker_toughness_on_toxined_kill",
+		},
+	},
+	-- дебаффы: первый — тот, что сейчас в av_status.lua (Status.DEBUFFS)
+	{
+		label = "icon_preview_brittle",
+		color = { 255, 170, 200, 230 },
+		icons = {
+			flat("circumstances/havoc/havoc_mutator_rotten_armor"),
+			flat("presets/preset_18"),
+			flat("circumstances/havoc/havoc_mutator_parasite"),
+		},
+	},
+	{
+		label = "icon_preview_vulnerable",
+		color = { 255, 255, 120, 170 },
+		icons = {
+			flat("circumstances/havoc/havoc_mutator_skin"),
+			flat("circumstances/havoc/havoc_mutator_final_toll"),
+			flat("circumstances/havoc/havoc_mutator_heinous_rituals"),
+		},
+	},
+	{
+		label = "icon_preview_melee_vulnerable",
+		color = { 255, 255, 190, 120 },
+		icons = {
+			flat("weapons/actions/melee"),
+			flat("weapons/actions/melee_hand"),
+			flat("weapons/actions/smiter"),
+		},
+	},
+	{
+		label = "icon_preview_ranged_vulnerable",
+		color = { 255, 150, 230, 255 },
+		icons = {
+			flat("weapons/actions/hipfire"),
+			flat("weapons/actions/semi_auto"),
+			flat("weapons/actions/ads"),
+		},
+	},
+	{
+		label = "icon_preview_stagger",
+		color = { 255, 240, 240, 140 },
+		icons = {
+			flat("circumstances/havoc/havoc_mutator_rampaging_enemies"),
+			flat("weapons/actions/tank"),
+			flat("circumstances/havoc/havoc_mutator_stimmed_minions"),
 		},
 	},
 }

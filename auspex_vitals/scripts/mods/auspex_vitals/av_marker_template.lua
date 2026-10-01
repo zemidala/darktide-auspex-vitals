@@ -12,7 +12,7 @@ local HudHealthBarLogic = require("scripts/ui/hud/elements/hud_health_bar_logic"
 local UIWidget = require("scripts/managers/ui/ui_widget")
 local _, HitZone = pcall(require, "scripts/utilities/attack/hit_zone")
 
-local MAX_DOTS = 3
+local MAX_DOTS = 5
 -- иконки периодического урона рисуем материалом иконок баффов игры (как в её панели баффов)
 local ICON_MATERIAL = Status.ICON_MATERIAL
 local ICON_GRADIENT = Status.ICON_GRADIENT
@@ -27,7 +27,7 @@ local SMALL_FONT_SIZE = 14
 local MIN_FONT_SIZE = 9
 local GAP = 3 -- зазор между строками раскладки, пикселей при масштабе 1
 local TEXT_BOX_HEIGHT = 20
-local DOT_TEXT_WIDTH = 30
+local DOT_TEXT_WIDTH = 44
 local HEALTH_TEXT_WIDTH = 80
 -- цвета числа здоровья (RGB); "by_health" считается из доли здоровья
 local TEXT_COLORS = {
@@ -665,7 +665,14 @@ local function _hide_dot(widget, i)
 end
 
 -- ширина числа стаков в строке эффектов (при масштабе 1)
-local function _stacks_width(stacks)
+-- ширина подписи у значка: стаки (1–2 цифры) или процент дебаффа ("+25%")
+local function _stacks_width(entry)
+	if entry.label then
+		return #entry.label * 7 + 2
+	end
+
+	local stacks = entry.stacks
+
 	return stacks > 9 and 20 or stacks > 0 and 12 or 0
 end
 
@@ -683,7 +690,7 @@ local function _layout_dots(widget, marker, count, scale, shape_width, shape_hei
 	local row_width = 0
 
 	for i = first_in_row, count do
-		row_width = row_width + icon_size + (2 + _stacks_width(marker.dots[i].stacks)) * scale
+		row_width = row_width + icon_size + (2 + _stacks_width(marker.dots[i])) * scale
 	end
 
 	local x = -row_width * 0.5
@@ -700,7 +707,7 @@ local function _layout_dots(widget, marker, count, scale, shape_width, shape_hei
 
 			text_color[2], text_color[3], text_color[4] = color[2], color[3], color[4]
 			text_style.font_size = font_size
-			content["dot_text_" .. i] = entry.stacks > 0 and tostring(entry.stacks) or ""
+			content["dot_text_" .. i] = entry.label or entry.stacks > 0 and tostring(entry.stacks) or ""
 
 			if i < first_in_row then
 				local size = math.floor(shape_width * CENTER_ICON_FRACTION * scale + 0.5)
@@ -718,7 +725,7 @@ local function _layout_dots(widget, marker, count, scale, shape_width, shape_hei
 				text_style.text_horizontal_alignment = "left"
 				text_style.offset[1] = x + icon_size + 2 * scale
 				text_style.offset[2] = row_y + icon_size * 0.5 - TEXT_BOX_HEIGHT * 0.5
-				x = x + icon_size + (2 + _stacks_width(entry.stacks)) * scale
+				x = x + icon_size + (2 + _stacks_width(entry)) * scale
 			end
 		end
 	end
@@ -956,15 +963,28 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 		_layout_bar(style, shape_width, math.max(shape_height, 2), health_fraction, ghost_fraction, template.bar_settings.bar_spacing)
 	end
 
-	-- эффекты
-	local show_dots = cfg and cfg.show_dots
+	-- эффекты: периодический урон, затем дебаффы; строка значков есть, если включено хоть что-то
+	local show_dots = cfg and (cfg.show_dots or cfg.show_debuffs)
 
 	if show_dots then
 		marker.dot_timer = marker.dot_timer - dt
 
 		if marker.dot_timer <= 0 then
 			marker.dot_timer = DOT_UPDATE_INTERVAL
-			marker.dot_count = HEALTH_ALIVE[unit] and Status.collect_dots(unit, marker.dots, MAX_DOTS) or 0
+
+			local count = 0
+
+			if HEALTH_ALIVE[unit] then
+				if cfg.show_dots then
+					count = Status.collect_dots(unit, marker.dots, MAX_DOTS)
+				end
+
+				if cfg.show_debuffs then
+					count = Status.collect_debuffs(unit, marker.dots, count, MAX_DOTS)
+				end
+			end
+
+			marker.dot_count = count
 		end
 	end
 

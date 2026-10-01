@@ -111,6 +111,7 @@ return {
 					},
 					{ setting_id = "shrink_with_distance", type = "checkbox", default_value = true },
 					{ setting_id = "show_dots", type = "checkbox", default_value = true },
+					{ setting_id = "show_debuffs", type = "checkbox", default_value = true },
 					{ setting_id = "dot_center", type = "checkbox", default_value = false },
 					{
 						setting_id = "show_health_number",
