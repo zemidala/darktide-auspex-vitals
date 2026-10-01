@@ -176,6 +176,44 @@ mod.on_disabled = function ()
 	DamageNumbers.clear()
 end
 
+-- Перезагрузка модов (DMF, режим разработчика, Ctrl+Shift+R): убрать все свои маркеры и шаблоны,
+-- иначе старые полосы останутся висеть со старым кодом рядом с новыми.
+mod.on_unload = function (exit_game)
+	if exit_game then
+		return
+	end
+
+	local element = Tracker.element()
+
+	if not element then
+		return
+	end
+
+	local markers_by_type = element._markers_by_type
+	local templates = element._marker_templates
+	local names = { Template.name, DamageNumbers.template.name, IconPreview.template.name, IconPreview.ring_template.name }
+
+	for _, name in ipairs(names) do
+		local list = type(markers_by_type) == "table" and markers_by_type[name]
+
+		if list then
+			local ids = {}
+
+			for i = 1, #list do
+				ids[#ids + 1] = list[i].id
+			end
+
+			for i = 1, #ids do
+				element:event_remove_world_marker(ids[i])
+			end
+		end
+
+		if type(templates) == "table" then
+			templates[name] = nil
+		end
+	end
+end
+
 local _warned_no_templates = false
 
 -- Регистрирует шаблон в элементе маркеров. Вызывается и из update: если мод включили посреди миссии,
