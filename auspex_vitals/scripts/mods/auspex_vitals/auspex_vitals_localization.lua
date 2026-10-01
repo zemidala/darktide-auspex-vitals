@@ -135,8 +135,8 @@ return {
 		ru = "Периодический урон",
 	},
 	show_dots_description = {
-		en = "Burning, warpfire, electrocution, bleeding and toxin under the bar, with stack counts where the effect stacks.",
-		ru = "Горение, варп-огонь, электрошок, кровотечение и токсин под полосой, с числом стаков, если эффект стакается.",
+		en = "Burning, warpfire, electrocution, bleeding and toxin above the bar, with stack counts where the effect stacks.",
+		ru = "Горение, варп-огонь, электрошок, кровотечение и токсин над полосой, с числом стаков, если эффект стакается.",
 	},
 	show_debuffs = {
 		en = "Debuffs",
