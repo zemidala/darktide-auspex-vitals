@@ -142,6 +142,54 @@ return {
 		en = "Health number",
 		ru = "Число здоровья",
 	},
+	health_number_size = {
+		en = "Health number size",
+		ru = "Размер числа здоровья",
+	},
+	health_number_size_description = {
+		en = "100% is the size of the enemy name text. Shrinks with distance like the bar.",
+		ru = "100% — как у имени врага. С расстоянием уменьшается вместе с полосой.",
+	},
+	health_number_color = {
+		en = "Health number color",
+		ru = "Цвет числа здоровья",
+	},
+	health_number_color_description = {
+		en = "\"By health\": green at full health, yellow at half, red when almost dead.",
+		ru = "«По здоровью»: зелёный при полном здоровье, жёлтый на половине, красный, когда враг почти мёртв.",
+	},
+	color_white = {
+		en = "White",
+		ru = "Белый",
+	},
+	color_by_health = {
+		en = "By health",
+		ru = "По здоровью",
+	},
+	color_gray = {
+		en = "Gray",
+		ru = "Серый",
+	},
+	color_yellow = {
+		en = "Yellow",
+		ru = "Жёлтый",
+	},
+	color_orange = {
+		en = "Orange",
+		ru = "Оранжевый",
+	},
+	color_red = {
+		en = "Red",
+		ru = "Красный",
+	},
+	color_green = {
+		en = "Green",
+		ru = "Зелёный",
+	},
+	color_cyan = {
+		en = "Cyan",
+		ru = "Голубой",
+	},
 	show_name = {
 		en = "Enemy name",
 		ru = "Имя врага",

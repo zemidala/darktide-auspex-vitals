@@ -27,6 +27,17 @@ local MIN_FONT_SIZE = 9
 local GAP = 3 -- зазор между строками раскладки, пикселей при масштабе 1
 local TEXT_BOX_HEIGHT = 20
 local DOT_TEXT_WIDTH = 30
+local HEALTH_TEXT_WIDTH = 80
+-- цвета числа здоровья (RGB); "by_health" считается из доли здоровья
+local HEALTH_NUMBER_COLORS = {
+	white = { 255, 255, 255 },
+	gray = { 180, 180, 180 },
+	yellow = { 255, 220, 70 },
+	orange = { 255, 150, 40 },
+	red = { 255, 70, 50 },
+	green = { 120, 230, 90 },
+	cyan = { 90, 210, 255 },
+}
 
 -- Масштаб по расстоянию: полный до SCALE_NEAR метров, дальше линейно до SCALE_FAR_MIN на пределе дальности.
 local SCALE_NEAR = 6
@@ -195,7 +206,7 @@ template.create_widget_defintion = function (template, scenegraph_id)
 	local kind = _shape_kind()
 	local passes = {
 		_text("name_text", MAX_WIDTH * 2, "center", "bottom"),
-		_text("health_text", 80, "left", "center"),
+		_text("health_text", HEALTH_TEXT_WIDTH, "left", "center"),
 	}
 
 	if kind == "bar" then
@@ -377,6 +388,33 @@ local function _distance_scale(content, cfg)
 	local t = math.min((distance - SCALE_NEAR) / (far - SCALE_NEAR), 1)
 
 	return 1 - t * (1 - SCALE_FAR_MIN)
+end
+
+-- Цвет числа здоровья: из набора или по доле здоровья (зелёный -> жёлтый -> красный).
+local function _health_number_color(text_color, color_id, fraction)
+	if color_id == "by_health" then
+		local f = math.clamp(fraction or 1, 0, 1)
+
+		if f > 0.5 then
+			local t = (f - 0.5) * 2
+
+			text_color[2] = math.floor(255 + (120 - 255) * t)
+			text_color[3] = math.floor(220 + (230 - 220) * t)
+			text_color[4] = math.floor(70 + (90 - 70) * t)
+		else
+			local t = f * 2
+
+			text_color[2] = 255
+			text_color[3] = math.floor(70 + (220 - 70) * t)
+			text_color[4] = math.floor(50 + (70 - 50) * t)
+		end
+
+		return
+	end
+
+	local rgb = HEALTH_NUMBER_COLORS[color_id] or HEALTH_NUMBER_COLORS.white
+
+	text_color[2], text_color[3], text_color[4] = rgb[1], rgb[2], rgb[3]
 end
 
 -- Полоса: нижний край — на точке маркера.
@@ -844,14 +882,18 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 	name_style.offset[2] = name_bottom - TEXT_BOX_HEIGHT
 
 	-- число здоровья — справа от фигуры, по её центру
-	local health_style = style.health_text
-
-	health_style.font_size = font_size
-	health_style.offset[1] = shape_width * 0.5 + 4 * scale
-	health_style.offset[2] = -shape_height * 0.5 - TEXT_BOX_HEIGHT * 0.5
-
 	if cfg and cfg.show_health_number and health_extension then
 		local health = Status.current_health(health_extension)
+		local health_style = style.health_text
+		local number_scale = (cfg.health_number_size or 100) / 100
+		local box_height = TEXT_BOX_HEIGHT * math.max(number_scale, 1)
+
+		health_style.font_size = math.max(SMALL_FONT_SIZE * scale * number_scale, MIN_FONT_SIZE)
+		health_style.size[1] = HEALTH_TEXT_WIDTH * math.max(number_scale, 1)
+		health_style.size[2] = box_height
+		health_style.offset[1] = shape_width * 0.5 + 4 * scale
+		health_style.offset[2] = -shape_height * 0.5 - box_height * 0.5
+		_health_number_color(health_style.text_color, cfg.health_number_color, health_fraction)
 
 		content.health_text = health and string.format("%d", math.ceil(health)) or ""
 	else

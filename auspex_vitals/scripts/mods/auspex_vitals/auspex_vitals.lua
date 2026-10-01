@@ -73,6 +73,8 @@ local function _read_settings()
 		bar_height_offset = mod:get("bar_height_offset") or 0,
 		shrink_with_distance = mod:get("shrink_with_distance") ~= false,
 		show_health_number = mod:get("show_health_number") == true,
+		health_number_size = mod:get("health_number_size") or 100,
+		health_number_color = mod:get("health_number_color") or "white",
 		show_name = mod:get("show_name") == true,
 		line_of_sight = mod:get("line_of_sight") ~= false,
 		hide_behind_enemies = mod:get("hide_behind_enemies") ~= false,
