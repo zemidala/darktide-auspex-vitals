@@ -76,7 +76,7 @@ local function _read_settings()
 		health_number_size = mod:get("health_number_size") or 100,
 		health_number_color = mod:get("health_number_color") or "white",
 		health_number_format = mod:get("health_number_format") or "exact",
-		health_number_separator = mod:get("health_number_separator") == "comma" and "," or ".",
+		health_number_separator = ({ dot = ".", comma = ",", space = " " })[mod:get("health_number_separator")] or "",
 		thousands_suffix = mod:localize("thousands_suffix"),
 		show_name = mod:get("show_name") == true,
 		name_categories = mod:get("name_categories") or "all",

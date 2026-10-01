@@ -422,11 +422,39 @@ local function _distance_scale(content, cfg)
 end
 
 -- Текст числа здоровья: точно или сокращённо до тысяч с одним знаком (2.3k, 3.0k, 24.7k), от 100 тысяч — целые (123k).
+-- Разделитель: в точном виде — между разрядами (24.700), в сокращённом — десятичный знак (2.3k; пробел и «нет» -> точка).
+local function _group_thousands(value, separator)
+	local text = string.format("%d", value)
+
+	if separator == "" or value < 1000 then
+		return text
+	end
+
+	local head = #text % 3
+
+	if head == 0 then
+		head = 3
+	end
+
+	local parts = { string.sub(text, 1, head) }
+
+	for i = head + 1, #text, 3 do
+		parts[#parts + 1] = string.sub(text, i, i + 2)
+	end
+
+	return table.concat(parts, separator)
+end
+
 local function _format_health(health, cfg)
 	local value = math.ceil(health)
+	local separator = cfg.health_number_separator or ""
 
 	if cfg.health_number_format ~= "short" or value < 1000 then
-		return string.format("%d", value)
+		return _group_thousands(value, separator)
+	end
+
+	if separator ~= "." and separator ~= "," then
+		separator = "."
 	end
 
 	local suffix = cfg.thousands_suffix or "k"
@@ -436,7 +464,7 @@ local function _format_health(health, cfg)
 		return string.format("%d%s", math.floor(tenths / 10 + 0.5), suffix)
 	end
 
-	return string.format("%d%s%d%s", math.floor(tenths / 10), cfg.health_number_separator or ".", tenths % 10, suffix)
+	return string.format("%d%s%d%s", math.floor(tenths / 10), separator, tenths % 10, suffix)
 end
 
 -- Цвет числа здоровья: из набора или по доле здоровья (зелёный -> жёлтый -> красный).

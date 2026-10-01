@@ -122,10 +122,12 @@ return {
 							{
 								setting_id = "health_number_separator",
 								type = "dropdown",
-								default_value = "dot",
+								default_value = "none",
 								options = {
+									{ text = "separator_none", value = "none" },
 									{ text = "separator_dot", value = "dot" },
 									{ text = "separator_comma", value = "comma" },
+									{ text = "separator_space", value = "space" },
 								},
 							},
 							{

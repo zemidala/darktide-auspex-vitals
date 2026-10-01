@@ -167,20 +167,28 @@ return {
 		ru = "Сокращённо (2.3к)",
 	},
 	health_number_separator = {
-		en = "Decimal separator",
-		ru = "Десятичный разделитель",
+		en = "Separator",
+		ru = "Разделитель",
 	},
 	health_number_separator_description = {
-		en = "For the short format: 2.3k or 2,3k. Visible on enemies with 1000+ health.",
-		ru = "Для сокращённого вида: 2.3к или 2,3к. Виден у врагов с 1000+ здоровья.",
+		en = "Exact: between thousands — 24.700, 24,700 or 24 700. Short: the decimal mark — 2.3k or 2,3k (with Space or None — a dot). Visible on enemies with 1000+ health.",
+		ru = "Точно: между разрядами — 24.700, 24,700 или 24 700. Сокращённо: десятичный знак — 2.3к или 2,3к (при «Пробел» и «Нет» — точка). Виден у врагов с 1000+ здоровья.",
+	},
+	separator_none = {
+		en = "None (24700)",
+		ru = "Нет (24700)",
+	},
+	separator_space = {
+		en = "Space (24 700)",
+		ru = "Пробел (24 700)",
 	},
 	separator_dot = {
-		en = "Dot (2.3)",
-		ru = "Точка (2.3)",
+		en = "Dot (24.700 / 2.3k)",
+		ru = "Точка (24.700 / 2.3к)",
 	},
 	separator_comma = {
-		en = "Comma (2,3)",
-		ru = "Запятая (2,3)",
+		en = "Comma (24,700 / 2,3k)",
+		ru = "Запятая (24,700 / 2,3к)",
 	},
 	thousands_suffix = {
 		en = "k",
