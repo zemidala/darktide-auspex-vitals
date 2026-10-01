@@ -113,6 +113,7 @@ return {
 					{ setting_id = "shrink_with_distance", type = "checkbox", default_value = true },
 					{ setting_id = "show_dots", type = "checkbox", default_value = true },
 					{ setting_id = "show_debuffs", type = "checkbox", default_value = true },
+					{ setting_id = "effect_labels", type = "checkbox", default_value = false },
 					{
 						setting_id = "effect_icon_size",
 						type = "numeric",

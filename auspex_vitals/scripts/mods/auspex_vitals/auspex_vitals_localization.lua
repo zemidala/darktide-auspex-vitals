@@ -146,6 +146,34 @@ return {
 		en = "After the damage-over-time icons: brittleness (armor rending), extra damage taken (all / melee / ranged) and easier stagger, in percent. Taken from the enemy's real stats, so any talent or blessing counts.",
 		ru = "После значков периодического урона: хрупкость брони, повышенный получаемый урон (весь / в ближнем бою / от стрельбы) и лёгкость ошеломления — в процентах. Берётся из настоящих характеристик врага, поэтому учитывается любой талант или благословение.",
 	},
+	effect_labels = {
+		en = "Debuff labels",
+		ru = "Подписи дебаффов",
+	},
+	effect_labels_description = {
+		en = "A short word before the percent: \"Brit. 15%\", \"Dmg +25%\", \"Melee +10%\", \"Ranged +10%\", \"Stag. +10%\". Takes more room in the row.",
+		ru = "Короткое слово перед процентом: «Хрупк. 15%», «Урон +25%», «Ближ. +10%», «Стрел. +10%», «Ошел. +10%». Строка значков становится шире.",
+	},
+	debuff_short_brittle = {
+		en = "Brit.",
+		ru = "Хрупк.",
+	},
+	debuff_short_vulnerable = {
+		en = "Dmg",
+		ru = "Урон",
+	},
+	debuff_short_melee_vulnerable = {
+		en = "Melee",
+		ru = "Ближ.",
+	},
+	debuff_short_ranged_vulnerable = {
+		en = "Ranged",
+		ru = "Стрел.",
+	},
+	debuff_short_stagger = {
+		en = "Stag.",
+		ru = "Ошел.",
+	},
 	effect_icon_size = {
 		en = "Effect icon size",
 		ru = "Размер значков эффектов",

@@ -689,7 +689,7 @@ end
 -- ширина подписи у значка: стаки (1–2 цифры) или процент дебаффа ("+25%")
 local function _stacks_width(entry)
 	if entry.label then
-		return #entry.label * 7 + 2
+		return (entry.label_length or #entry.label) * 7 + 2
 	end
 
 	local stacks = entry.stacks
@@ -733,7 +733,7 @@ local function _layout_dots(widget, marker, count, scale, shape_width, shape_hei
 
 			text_color[2], text_color[3], text_color[4] = color[2], color[3], color[4]
 			text_style.font_size = font_size
-			text_style.size[1] = text_width
+			text_style.size[1] = math.max(text_width, (_stacks_width(entry) + 6) * math.max(icon_scale, 1))
 			text_style.size[2] = text_height
 			content["dot_text_" .. i] = entry.label or entry.stacks > 0 and tostring(entry.stacks) or ""
 

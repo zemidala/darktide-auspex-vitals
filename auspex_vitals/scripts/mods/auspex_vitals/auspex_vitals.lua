@@ -107,6 +107,7 @@ local function _read_settings()
 		recent_seconds = mod:get("recent_seconds") or 10,
 		show_dots = mod:get("show_dots") ~= false,
 		show_debuffs = mod:get("show_debuffs") ~= false,
+		effect_labels = mod:get("effect_labels") == true,
 		effect_icon_size = mod:get("effect_icon_size") or 130,
 		show_toughness = mod:get("show_toughness") ~= false,
 		boss_state_color = mod:get("boss_state_color") ~= false,

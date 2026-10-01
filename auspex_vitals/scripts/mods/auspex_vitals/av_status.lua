@@ -405,6 +405,19 @@ function Status.collect_dots(unit, out, max_count)
 	return count
 end
 
+local _debuff_short_names = {}
+
+local function _debuff_short_name(debuff)
+	local name = _debuff_short_names[debuff.id]
+
+	if not name then
+		name = mod:localize("debuff_short_" .. debuff.id)
+		_debuff_short_names[debuff.id] = name
+	end
+
+	return name
+end
+
 -- Дописывает дебаффы в out после count уже собранных записей; возвращает новое число записей.
 -- entry.label — подпись вместо стаков: "40%" (хрупкость) или "+25%".
 function Status.collect_debuffs(unit, out, count, max_count)
@@ -439,7 +452,16 @@ function Status.collect_debuffs(unit, out, count, max_count)
 
 			entry.dot = debuff
 			entry.stacks = 0
-			entry.label = string.format(debuff.plus and "+%d%%" or "%d%%", math.floor(value * 100 + 0.5))
+			local label = string.format(debuff.plus and "+%d%%" or "%d%%", math.floor(value * 100 + 0.5))
+
+			-- опция «подписи к значкам»: короткое слово перед процентом («Хрупк. 15%»)
+			if mod.cfg and mod.cfg.effect_labels then
+				label = _debuff_short_name(debuff) .. " " .. label
+			end
+
+			entry.label = label
+			-- число символов, а не байт: кириллица в UTF-8 занимает по два байта
+			entry.label_length = select(2, string.gsub(label, "[^\128-\191]", ""))
 		end
 	end
 
