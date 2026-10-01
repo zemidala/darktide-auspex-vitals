@@ -30,7 +30,7 @@ local TEXT_BOX_HEIGHT = 20
 local DOT_TEXT_WIDTH = 30
 local HEALTH_TEXT_WIDTH = 80
 -- цвета числа здоровья (RGB); "by_health" считается из доли здоровья
-local HEALTH_NUMBER_COLORS = {
+local TEXT_COLORS = {
 	white = { 255, 255, 255 },
 	gray = { 180, 180, 180 },
 	yellow = { 255, 220, 70 },
@@ -100,6 +100,13 @@ local WIDTH_BY_CATEGORY = {
 	elite = 140,
 	special = 140,
 	boss = 190,
+}
+
+-- для каких категорий показывать имя (настройка name_categories)
+local NAME_CATEGORIES = {
+	all = { horde = true, elite = true, special = true, boss = true },
+	elite = { elite = true, special = true, boss = true },
+	boss = { boss = true },
 }
 
 local BAR_COLOR_BY_CATEGORY = {
@@ -365,8 +372,26 @@ template.on_enter = function (widget, marker, template)
 		color[1], color[2], color[3], color[4] = bar_color[1], bar_color[2], bar_color[3], bar_color[4]
 	end
 
-	if cfg and cfg.show_name then
-		widget.content.name_text = Status.display_name(marker.unit) or ""
+	widget.content.name_text = ""
+
+	if cfg and cfg.show_name and NAME_CATEGORIES[cfg.name_categories or "all"][category] then
+		local name = Status.display_name(marker.unit)
+
+		if name and cfg.name_uppercase and Utf8 and Utf8.upper then
+			name = Utf8.upper(name)
+		end
+
+		widget.content.name_text = name or ""
+
+		local text_color = style.name_text.text_color
+		local rgb = cfg.name_color == "by_category" and bar_color or nil
+
+		if rgb then
+			text_color[2], text_color[3], text_color[4] = rgb[2], rgb[3], rgb[4]
+		else
+			rgb = TEXT_COLORS[cfg.name_color] or TEXT_COLORS.white
+			text_color[2], text_color[3], text_color[4] = rgb[1], rgb[2], rgb[3]
+		end
 	end
 end
 
@@ -436,7 +461,7 @@ local function _health_number_color(text_color, color_id, fraction)
 		return
 	end
 
-	local rgb = HEALTH_NUMBER_COLORS[color_id] or HEALTH_NUMBER_COLORS.white
+	local rgb = TEXT_COLORS[color_id] or TEXT_COLORS.white
 
 	text_color[2], text_color[3], text_color[4] = rgb[1], rgb[2], rgb[3]
 end
@@ -924,13 +949,15 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 	_layout_dots(widget, marker, dot_count, scale, shape_width, shape_height, row_y)
 
 	-- имя — над строкой эффектов
-	local font_size = math.max(SMALL_FONT_SIZE * scale, MIN_FONT_SIZE)
 	local name_style = style.name_text
 	local name_bottom = (show_dots and row_y or -shape_height) - gap
+	local name_scale = (cfg and cfg.name_size or 100) / 100
+	local name_box_height = TEXT_BOX_HEIGHT * math.max(name_scale, 1)
 
-	name_style.font_size = font_size
+	name_style.font_size = math.max(SMALL_FONT_SIZE * scale * name_scale, MIN_FONT_SIZE)
+	name_style.size[2] = name_box_height
 	name_style.offset[1] = -MAX_WIDTH
-	name_style.offset[2] = name_bottom - TEXT_BOX_HEIGHT
+	name_style.offset[2] = name_bottom - name_box_height
 
 	-- число здоровья — справа от фигуры, по её центру
 	if cfg and cfg.show_health_number and health_extension then

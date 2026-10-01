@@ -13,6 +13,32 @@ local function mode_dropdown(setting_id, default_value)
 	}
 end
 
+-- Цвета текста: первым — особый вариант (по здоровью / по категории), дальше общий набор.
+local function color_options(special)
+	local options = { { text = "color_white", value = "white" } }
+
+	if special then
+		options[#options + 1] = { text = "color_" .. special, value = special }
+	end
+
+	for _, id in ipairs({ "gray", "yellow", "orange", "red", "green", "cyan" }) do
+		options[#options + 1] = { text = "color_" .. id, value = id }
+	end
+
+	return options
+end
+
+local function percent_slider(setting_id)
+	return {
+		setting_id = setting_id,
+		type = "numeric",
+		default_value = 100,
+		range = { 50, 250 },
+		decimals_number = 0,
+		unit_text = "percent",
+	}
+end
+
 return {
 	name = mod:localize("mod_name"),
 	description = mod:localize("mod_description"),
@@ -78,49 +104,63 @@ return {
 					{ setting_id = "shrink_with_distance", type = "checkbox", default_value = true },
 					{ setting_id = "show_dots", type = "checkbox", default_value = true },
 					{ setting_id = "dot_center", type = "checkbox", default_value = false },
-					{ setting_id = "show_health_number", type = "checkbox", default_value = false },
 					{
-						setting_id = "health_number_size",
-						type = "numeric",
-						default_value = 100,
-						range = { 50, 250 },
-						decimals_number = 0,
-						unit_text = "percent",
-					},
-					{
-						setting_id = "health_number_format",
-						type = "dropdown",
-						default_value = "exact",
-						options = {
-							{ text = "health_number_format_exact", value = "exact" },
-							{ text = "health_number_format_short", value = "short" },
+						setting_id = "show_health_number",
+						type = "checkbox",
+						default_value = false,
+						sub_widgets = {
+							percent_slider("health_number_size"),
+							{
+								setting_id = "health_number_format",
+								type = "dropdown",
+								default_value = "exact",
+								options = {
+									{ text = "health_number_format_exact", value = "exact" },
+									{ text = "health_number_format_short", value = "short" },
+								},
+							},
+							{
+								setting_id = "health_number_separator",
+								type = "dropdown",
+								default_value = "dot",
+								options = {
+									{ text = "separator_dot", value = "dot" },
+									{ text = "separator_comma", value = "comma" },
+								},
+							},
+							{
+								setting_id = "health_number_color",
+								type = "dropdown",
+								default_value = "white",
+								options = color_options("by_health"),
+							},
 						},
 					},
 					{
-						setting_id = "health_number_separator",
-						type = "dropdown",
-						default_value = "dot",
-						options = {
-							{ text = "separator_dot", value = "dot" },
-							{ text = "separator_comma", value = "comma" },
+						setting_id = "show_name",
+						type = "checkbox",
+						default_value = false,
+						sub_widgets = {
+							{
+								setting_id = "name_categories",
+								type = "dropdown",
+								default_value = "all",
+								options = {
+									{ text = "name_categories_all", value = "all" },
+									{ text = "name_categories_elite", value = "elite" },
+									{ text = "name_categories_boss", value = "boss" },
+								},
+							},
+							percent_slider("name_size"),
+							{
+								setting_id = "name_color",
+								type = "dropdown",
+								default_value = "white",
+								options = color_options("by_category"),
+							},
+							{ setting_id = "name_uppercase", type = "checkbox", default_value = false },
 						},
 					},
-					{
-						setting_id = "health_number_color",
-						type = "dropdown",
-						default_value = "white",
-						options = {
-							{ text = "color_white", value = "white" },
-							{ text = "color_by_health", value = "by_health" },
-							{ text = "color_gray", value = "gray" },
-							{ text = "color_yellow", value = "yellow" },
-							{ text = "color_orange", value = "orange" },
-							{ text = "color_red", value = "red" },
-							{ text = "color_green", value = "green" },
-							{ text = "color_cyan", value = "cyan" },
-						},
-					},
-					{ setting_id = "show_name", type = "checkbox", default_value = false },
 					{ setting_id = "line_of_sight", type = "checkbox", default_value = true },
 					{ setting_id = "hide_behind_enemies", type = "checkbox", default_value = true },
 				},

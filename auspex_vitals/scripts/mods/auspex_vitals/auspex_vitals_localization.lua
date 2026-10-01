@@ -230,6 +230,46 @@ return {
 		en = "Enemy name",
 		ru = "Имя врага",
 	},
+	name_categories = {
+		en = "Show name for",
+		ru = "Показывать имя для",
+	},
+	name_categories_all = {
+		en = "All enemies with a bar",
+		ru = "Всех врагов с полосой",
+	},
+	name_categories_elite = {
+		en = "Elites, specialists and bosses",
+		ru = "Элиты, специалистов и боссов",
+	},
+	name_categories_boss = {
+		en = "Monstrosities and captains only",
+		ru = "Только чудовищ и капитанов",
+	},
+	name_size = {
+		en = "Name size",
+		ru = "Размер имени",
+	},
+	name_size_description = {
+		en = "100% is the default text size. Shrinks with distance like the bar.",
+		ru = "100% — обычный размер текста. С расстоянием уменьшается вместе с полосой.",
+	},
+	name_color = {
+		en = "Name color",
+		ru = "Цвет имени",
+	},
+	name_color_description = {
+		en = "\"By category\": the same color as the bar (horde, elites and specialists, bosses).",
+		ru = "«По категории»: тот же цвет, что у полосы (орда, элита и специалисты, боссы).",
+	},
+	color_by_category = {
+		en = "By category",
+		ru = "По категории",
+	},
+	name_uppercase = {
+		en = "Name in capitals",
+		ru = "Имя заглавными",
+	},
 	line_of_sight = {
 		en = "Hide behind walls",
 		ru = "Скрывать за стенами",
