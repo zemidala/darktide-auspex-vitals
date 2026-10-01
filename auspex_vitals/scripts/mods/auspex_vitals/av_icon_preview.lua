@@ -211,138 +211,7 @@ end
 
 Preview.template = template
 
--- Просмотр круглых материалов для кольца здоровья (/av_rings) ----------------------------------
--- Кандидаты — материалы игры с круговым прогрессом; параметры — ровно те, что им передаёт сама игра.
--- Прогресс крутится 0 → 1 за RING_CYCLE секунд, чтобы было видно форму, гладкость и направление.
-
-local RING_SIZE = 72
-local RING_CELL = 150
-local RING_COLUMNS = 4
-local RING_CYCLE = 3
-local MATERIALS = "content/ui/materials/"
-
-local RING_CANDIDATES = {
-	{ path = MATERIALS .. "icons/abilities/frames/background_progress", kind = "progress" },
-	{ path = MATERIALS .. "icons/abilities/frames/inner_line_thick_progress", kind = "progress" },
-	{ path = MATERIALS .. "icons/abilities/frames/outer_line_progress", kind = "progress" },
-	{ path = MATERIALS .. "icons/items/salvage_circle", kind = "progress" },
-	{ path = MATERIALS .. "icons/buffs/hud/buff_container_with_background", kind = "progress" },
-	{ path = MATERIALS .. "effects/forcesword_bar", kind = "arc" },
-	{ path = MATERIALS .. "hud/communication_wheel/middle_circle", kind = "static" },
-	{ path = MATERIALS .. "backgrounds/scanner/scanner_drill_circle_filled", kind = "static" },
-}
-
-local _ring_marker_id = nil
-
-local ring_template = {}
-
-ring_template.name = "auspex_vitals_ring_preview"
-ring_template.max_distance = 100
-ring_template.check_line_of_sight = false
-ring_template.screen_clamp = false
-
-local function _ring_material_values(kind)
-	if kind == "progress" then
-		return {
-			progress = 0.65,
-		}
-	elseif kind == "arc" then
-		-- как заряды у прицела (weapon_counter_template_block_charges.lua)
-		return {
-			amount = 0.65,
-			glow_on_off = 0,
-			lightning_opacity = 0,
-			arc_top_bottom = { 1, 0 },
-			fill_outline_opacity = { 1.3, 1 },
-		}
-	end
-
-	return nil
-end
-
-ring_template.create_widget_defintion = function (template, scenegraph_id)
-	local rows = math.ceil(#RING_CANDIDATES / RING_COLUMNS)
-	local width = RING_CELL * RING_COLUMNS
-	local height = (RING_SIZE + 40) * rows
-	local x0, y0 = -width * 0.5, -height * 0.5
-	local passes = {
-		{
-			pass_type = "rect",
-			style = {
-				offset = { x0 - 20, y0 - 20, 0 },
-				size = { width + 40, height + 40 },
-				color = { 200, 10, 10, 10 },
-			},
-		},
-	}
-
-	for index, candidate in ipairs(RING_CANDIDATES) do
-		local column = (index - 1) % RING_COLUMNS
-		local row = math.floor((index - 1) / RING_COLUMNS)
-		local x = x0 + column * RING_CELL + (RING_CELL - RING_SIZE) * 0.5
-		local y = y0 + row * (RING_SIZE + 40)
-		local loaded = Status.resource_available("material", candidate.path)
-
-		if loaded then
-			passes[#passes + 1] = {
-				pass_type = "texture",
-				style_id = "ring_" .. index,
-				value = candidate.path,
-				style = {
-					offset = { x, y, 2 },
-					size = { RING_SIZE, RING_SIZE },
-					color = { 255, 230, 70, 40 },
-					material_values = _ring_material_values(candidate.kind),
-				},
-			}
-		end
-
-		passes[#passes + 1] = {
-			pass_type = "text",
-			value = loaded and tostring(index) or string.format("%d %s", index, mod:localize("icon_preview_not_loaded")),
-			style = {
-				offset = { x - (RING_CELL - RING_SIZE) * 0.5, y + RING_SIZE + 4, 2 },
-				size = { RING_CELL, 24 },
-				font_type = "proxima_nova_bold",
-				font_size = 18,
-				text_horizontal_alignment = "center",
-				text_color = loaded and { 255, 220, 220, 220 } or { 255, 230, 90, 90 },
-			},
-		}
-	end
-
-	return UIWidget.create_definition(passes, scenegraph_id)
-end
-
-ring_template.update_function = function (parent, ui_renderer, widget, marker, template, dt, t)
-	_to_screen_center(parent, ui_renderer, widget, marker)
-
-	local progress = (t % RING_CYCLE) / RING_CYCLE
-
-	for index, candidate in ipairs(RING_CANDIDATES) do
-		local style = widget.style["ring_" .. index]
-		local material_values = style and style.material_values
-
-		if material_values then
-			if candidate.kind == "progress" then
-				material_values.progress = progress
-			elseif candidate.kind == "arc" then
-				material_values.amount = progress
-				material_values.arc_top_bottom[1] = progress
-			end
-		end
-	end
-end
-
-ring_template.on_exit = function (widget, marker, template)
-	if _ring_marker_id == marker.id then
-		_ring_marker_id = nil
-	end
-end
-
-Preview.ring_template = ring_template
-
--- Показать/скрыть панель: общая логика для /av_icons и /av_rings.
+-- Показать/скрыть панель.
 local function _toggle(element, template_name, get_id, set_id)
 	if not element then
 		mod:echo(mod:localize("icon_preview_no_hud"))
@@ -380,17 +249,8 @@ function Preview.toggle(element)
 	end)
 end
 
-function Preview.toggle_rings(element)
-	_toggle(element, ring_template.name, function ()
-		return _ring_marker_id
-	end, function (id)
-		_ring_marker_id = id
-	end)
-end
-
 function Preview.detach()
 	_marker_id = nil
-	_ring_marker_id = nil
 end
 
 return Preview

@@ -191,7 +191,7 @@ mod.on_unload = function (exit_game)
 
 	local markers_by_type = element._markers_by_type
 	local templates = element._marker_templates
-	local names = { Template.name, DamageNumbers.template.name, IconPreview.template.name, IconPreview.ring_template.name }
+	local names = { Template.name, DamageNumbers.template.name, IconPreview.template.name }
 
 	for _, name in ipairs(names) do
 		local list = type(markers_by_type) == "table" and markers_by_type[name]
@@ -234,7 +234,6 @@ local function _attach(element)
 	templates[Template.name] = Template
 	templates[DamageNumbers.template.name] = DamageNumbers.template
 	templates[IconPreview.template.name] = IconPreview.template
-	templates[IconPreview.ring_template.name] = IconPreview.ring_template
 	Tracker.attach(element)
 	DamageNumbers.attach(element)
 
@@ -265,15 +264,15 @@ mod:hook_safe("AttackReportManager", "add_attack_result", function (self, damage
 	DamageNumbers.on_attack_result(damage_profile, attacked_unit, attacking_unit, hit_world_position, hit_weakspot, damage, attack_type, is_critical_strike)
 end)
 
--- /av_icons — показать или скрыть сетку значков эффектов, чтобы выбрать читаемые
-mod:command("av_icons", mod:localize("icon_preview_command"), function ()
-	IconPreview.toggle(Tracker.element())
-end)
+-- /av_icons — показать или скрыть сетку значков эффектов, чтобы выбрать читаемые.
+-- Инструмент разработки: команда есть только в режиме разработчика DMF.
+local dmf = get_mod("DMF")
 
--- /av_rings — показать или скрыть круглые материалы игры-кандидаты для кольца здоровья
-mod:command("av_rings", mod:localize("ring_preview_command"), function ()
-	IconPreview.toggle_rings(Tracker.element())
-end)
+if dmf and dmf:get("developer_mode") then
+	mod:command("av_icons", mod:localize("icon_preview_command"), function ()
+		IconPreview.toggle(Tracker.element())
+	end)
+end
 
 mod.on_all_mods_loaded = function ()
 	mod:info("loaded")
