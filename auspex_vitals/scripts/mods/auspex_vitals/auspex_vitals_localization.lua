@@ -150,6 +150,42 @@ return {
 		en = "100% is the size of the enemy name text. Shrinks with distance like the bar.",
 		ru = "100% — как у имени врага. С расстоянием уменьшается вместе с полосой.",
 	},
+	health_number_format = {
+		en = "Health number format",
+		ru = "Вид числа здоровья",
+	},
+	health_number_format_description = {
+		en = "Short: from 1000 health it is rounded to thousands, 2345 -> 2.3k, 12345 -> 12k.",
+		ru = "Сокращённо: от 1000 здоровья округляется до тысяч, 2345 -> 2.3к, 12345 -> 12к.",
+	},
+	health_number_format_exact = {
+		en = "Exact (2345)",
+		ru = "Точно (2345)",
+	},
+	health_number_format_short = {
+		en = "Short (2.3k)",
+		ru = "Сокращённо (2.3к)",
+	},
+	health_number_separator = {
+		en = "Decimal separator",
+		ru = "Десятичный разделитель",
+	},
+	health_number_separator_description = {
+		en = "For the short format: 2.3k or 2,3k.",
+		ru = "Для сокращённого вида: 2.3к или 2,3к.",
+	},
+	separator_dot = {
+		en = "Dot (2.3)",
+		ru = "Точка (2.3)",
+	},
+	separator_comma = {
+		en = "Comma (2,3)",
+		ru = "Запятая (2,3)",
+	},
+	thousands_suffix = {
+		en = "k",
+		ru = "к",
+	},
 	health_number_color = {
 		en = "Health number color",
 		ru = "Цвет числа здоровья",

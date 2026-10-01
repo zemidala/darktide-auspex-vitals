@@ -88,6 +88,24 @@ return {
 						unit_text = "percent",
 					},
 					{
+						setting_id = "health_number_format",
+						type = "dropdown",
+						default_value = "exact",
+						options = {
+							{ text = "health_number_format_exact", value = "exact" },
+							{ text = "health_number_format_short", value = "short" },
+						},
+					},
+					{
+						setting_id = "health_number_separator",
+						type = "dropdown",
+						default_value = "dot",
+						options = {
+							{ text = "separator_dot", value = "dot" },
+							{ text = "separator_comma", value = "comma" },
+						},
+					},
+					{
 						setting_id = "health_number_color",
 						type = "dropdown",
 						default_value = "white",

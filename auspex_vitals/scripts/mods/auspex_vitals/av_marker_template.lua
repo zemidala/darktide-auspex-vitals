@@ -390,6 +390,24 @@ local function _distance_scale(content, cfg)
 	return 1 - t * (1 - SCALE_FAR_MIN)
 end
 
+-- Текст числа здоровья: точно или сокращённо до тысяч (2.3k до 10 тысяч, дальше 12k).
+local function _format_health(health, cfg)
+	local value = math.ceil(health)
+
+	if cfg.health_number_format ~= "short" or value < 1000 then
+		return string.format("%d", value)
+	end
+
+	local suffix = cfg.thousands_suffix or "k"
+	local tenths = math.floor(value / 100 + 0.5)
+
+	if tenths >= 100 or tenths % 10 == 0 then
+		return string.format("%d%s", math.floor(tenths / 10 + 0.5), suffix)
+	end
+
+	return string.format("%d%s%d%s", math.floor(tenths / 10), cfg.health_number_separator or ".", tenths % 10, suffix)
+end
+
 -- Цвет числа здоровья: из набора или по доле здоровья (зелёный -> жёлтый -> красный).
 local function _health_number_color(text_color, color_id, fraction)
 	if color_id == "by_health" then
@@ -895,7 +913,7 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 		health_style.offset[2] = -shape_height * 0.5 - box_height * 0.5
 		_health_number_color(health_style.text_color, cfg.health_number_color, health_fraction)
 
-		content.health_text = health and string.format("%d", math.ceil(health)) or ""
+		content.health_text = health and _format_health(health, cfg) or ""
 	else
 		content.health_text = ""
 	end
