@@ -16,6 +16,8 @@ local SCRIPTS = "auspex_vitals/scripts/mods/auspex_vitals/"
 local REQUIRED_PACKAGES = {
 	"packages/ui/views/scanner_display_view/scanner_display_view",
 	"packages/ui/views/inventory_background_view/inventory_background_view",
+	-- значки дебаффов «ближний бой / стрельба / ошеломление» (icons/weapons/actions/*): окно оружия в инвентаре
+	"packages/ui/views/inventory_weapons_view/inventory_weapons_view",
 }
 
 local function _load_packages()

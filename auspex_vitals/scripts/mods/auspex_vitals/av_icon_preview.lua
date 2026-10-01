@@ -87,17 +87,17 @@ local ROWS = {
 		label = "icon_preview_vulnerable",
 		color = { 255, 255, 120, 170 },
 		icons = {
+			flat("circumstances/havoc/havoc_mutator_heinous_rituals"),
 			flat("circumstances/havoc/havoc_mutator_skin"),
 			flat("circumstances/havoc/havoc_mutator_final_toll"),
-			flat("circumstances/havoc/havoc_mutator_heinous_rituals"),
 		},
 	},
 	{
 		label = "icon_preview_melee_vulnerable",
 		color = { 255, 255, 190, 120 },
 		icons = {
-			flat("weapons/actions/melee"),
 			flat("weapons/actions/melee_hand"),
+			flat("weapons/actions/melee"),
 			flat("weapons/actions/smiter"),
 		},
 	},
@@ -105,15 +105,16 @@ local ROWS = {
 		label = "icon_preview_ranged_vulnerable",
 		color = { 255, 150, 230, 255 },
 		icons = {
+			flat("weapons/actions/ads"),
 			flat("weapons/actions/hipfire"),
 			flat("weapons/actions/semi_auto"),
-			flat("weapons/actions/ads"),
 		},
 	},
 	{
 		label = "icon_preview_stagger",
 		color = { 255, 240, 240, 140 },
 		icons = {
+			flat("weapons/actions/smiter"),
 			flat("circumstances/havoc/havoc_mutator_rampaging_enemies"),
 			flat("weapons/actions/tank"),
 			flat("circumstances/havoc/havoc_mutator_stimmed_minions"),

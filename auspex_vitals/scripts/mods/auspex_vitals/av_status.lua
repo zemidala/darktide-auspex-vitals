@@ -66,8 +66,9 @@ Status.DOTS = {
 
 -- Дебаффы: не шаблоны, а итоговые характеристики врага, на которые игра умножает урон и ошеломление
 -- (damage_calculation.lua, stagger_calculation.lua). Так подхватываются любые таланты и благословения.
--- value = произведение stats - 1; показываем, если больше MIN_DEBUFF. Значки — из постоянного пакета
--- circumstances (havoc_*) или с проверкой загрузки; без значка — цветная метка.
+-- value = произведение stats - 1; показываем, если больше MIN_DEBUFF. Значки выбраны автором в /av_icons
+-- (6.1, 7.3, 8.2, 9.3, 8.3): havoc_* — постоянный пакет circumstances, weapons/actions/* — пакет окна
+-- оружия (грузим сами, REQUIRED_PACKAGES); без загруженного значка — цветная метка.
 local MIN_DEBUFF = 0.01
 
 Status.DEBUFFS = {
@@ -81,28 +82,28 @@ Status.DEBUFFS = {
 	{
 		id = "vulnerable", -- получает больше урона от всего
 		stats = { "damage_taken_multiplier", "damage_taken_modifier" },
-		flat = "content/ui/materials/icons/circumstances/havoc/havoc_mutator_skin",
+		flat = "content/ui/materials/icons/circumstances/havoc/havoc_mutator_heinous_rituals",
 		color = { 255, 255, 120, 170 },
 		plus = true,
 	},
 	{
 		id = "melee_vulnerable",
 		stats = { "melee_damage_taken_multiplier", "melee_damage_taken_modifier" },
-		flat = "content/ui/materials/icons/weapons/actions/melee",
+		flat = "content/ui/materials/icons/weapons/actions/melee_hand",
 		color = { 255, 255, 190, 120 },
 		plus = true,
 	},
 	{
 		id = "ranged_vulnerable",
 		stats = { "ranged_damage_taken_multiplier" },
-		flat = "content/ui/materials/icons/weapons/actions/hipfire",
+		flat = "content/ui/materials/icons/weapons/actions/ads",
 		color = { 255, 150, 230, 255 },
 		plus = true,
 	},
 	{
 		id = "stagger", -- легче ошеломить
 		stats = { "impact_modifier" },
-		flat = "content/ui/materials/icons/circumstances/havoc/havoc_mutator_rampaging_enemies",
+		flat = "content/ui/materials/icons/weapons/actions/smiter",
 		color = { 255, 240, 240, 140 },
 		plus = true,
 	},
