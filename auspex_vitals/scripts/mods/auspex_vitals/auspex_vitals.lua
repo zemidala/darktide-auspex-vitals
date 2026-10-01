@@ -20,6 +20,18 @@ local REQUIRED_PACKAGES = {
 	"packages/ui/views/inventory_weapons_view/inventory_weapons_view",
 }
 
+-- Пакет грузится не мгновенно: значки, проверенные до конца загрузки, запомнены как «нет ресурса».
+-- Когда пакет готов, сбрасываем эту память и пересоздаём полосы.
+local function _on_package_loaded()
+	if mod.av_status then
+		mod.av_status.reset_resource_cache()
+	end
+
+	if mod.av_tracker then
+		mod.av_tracker.remove_all()
+	end
+end
+
 local function _load_packages()
 	local package_manager = Managers.package
 	local loaded = mod:persistent_table("packages")
@@ -30,7 +42,7 @@ local function _load_packages()
 
 	for _, package_name in ipairs(REQUIRED_PACKAGES) do
 		if not loaded[package_name] then
-			local ok, id = pcall(package_manager.load, package_manager, package_name, mod:get_name(), nil, true)
+			local ok, id = pcall(package_manager.load, package_manager, package_name, mod:get_name(), _on_package_loaded, true)
 
 			if ok then
 				loaded[package_name] = id

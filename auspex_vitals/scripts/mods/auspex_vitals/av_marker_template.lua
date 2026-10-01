@@ -733,7 +733,10 @@ local function _layout_dots(widget, marker, count, scale, shape_width, shape_hei
 
 			text_color[2], text_color[3], text_color[4] = color[2], color[3], color[4]
 			text_style.font_size = font_size
-			text_style.size[1] = math.max(text_width, (_stacks_width(entry) + 6) * math.max(icon_scale, 1))
+			-- длинной подписи («Хрупк. 15%») нужна рамка шире обычной
+			local box_width = math.max(text_width, (_stacks_width(entry) + 6) * math.max(icon_scale, 1))
+
+			text_style.size[1] = box_width
 			text_style.size[2] = text_height
 			content["dot_text_" .. i] = entry.label or entry.stacks > 0 and tostring(entry.stacks) or ""
 
@@ -745,7 +748,7 @@ local function _layout_dots(widget, marker, count, scale, shape_width, shape_hei
 
 				-- стаки главного эффекта — слева от фигуры (справа — число здоровья)
 				text_style.text_horizontal_alignment = "right"
-				text_style.offset[1] = -shape_width * 0.5 - 4 * scale - text_width
+				text_style.offset[1] = -shape_width * 0.5 - 4 * scale - box_width
 				text_style.offset[2] = center_y - text_height * 0.5
 			else
 				_layout_dot_icon(widget, i, dot, x, row_y, icon_size, gradient)
