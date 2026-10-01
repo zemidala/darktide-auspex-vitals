@@ -106,6 +106,7 @@ local function _read_settings()
 		show_dots = mod:get("show_dots") ~= false,
 		show_debuffs = mod:get("show_debuffs") ~= false,
 		show_toughness = mod:get("show_toughness") ~= false,
+		boss_state_color = mod:get("boss_state_color") ~= false,
 		ads_opacity = mod:get("ads_opacity") or 100,
 		bar_width = mod:get("bar_width") or 100,
 		bar_thickness = mod:get("bar_thickness") or 7,

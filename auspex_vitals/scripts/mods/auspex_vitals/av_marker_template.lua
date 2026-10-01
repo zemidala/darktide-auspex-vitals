@@ -113,6 +113,12 @@ local NAME_CATEGORIES = {
 	boss = { boss = true },
 }
 
+-- боссы, заспавненные ослабленными (меньше здоровья) или усиленными
+local BAR_COLOR_BY_BOSS_STATE = {
+	weakened = { 255, 150, 190, 130 },
+	empowered = { 255, 190, 90, 255 },
+}
+
 local BAR_COLOR_BY_CATEGORY = {
 	horde = { 255, 200, 40, 40 },
 	elite = { 255, 230, 70, 40 },
@@ -374,6 +380,10 @@ template.on_enter = function (widget, marker, template)
 	end
 
 	local bar_color = BAR_COLOR_BY_CATEGORY[category] or BAR_COLOR_BY_CATEGORY.horde
+
+	if category == "boss" and cfg and cfg.boss_state_color then
+		bar_color = BAR_COLOR_BY_BOSS_STATE[Status.boss_state(marker.unit) or ""] or bar_color
+	end
 
 	marker.bar_color = bar_color
 

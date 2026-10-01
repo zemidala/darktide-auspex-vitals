@@ -265,7 +265,29 @@ function Status.category(unit)
 	return "horde"
 end
 
--- Имя как в полосе игры: у боссов — их титул, у остальных — название породы.
+-- Босс ослаблен (заспавнен с уменьшенным здоровьем) или усилен: "weakened" | "empowered" | nil.
+-- Усиление — строка-ключ приставки имени (как её использует полоса босса игры).
+function Status.boss_state(unit)
+	local boss_extension = ScriptUnit.has_extension(unit, "boss_system")
+
+	if not boss_extension then
+		return nil
+	end
+
+	local empowered = boss_extension.is_empowered and boss_extension:is_empowered()
+
+	if empowered then
+		return "empowered", empowered
+	end
+
+	if boss_extension.is_weakened and boss_extension:is_weakened() then
+		return "weakened"
+	end
+
+	return nil
+end
+
+-- Имя как в полосе игры: у боссов — их титул (с приставкой «ослабленный»/«усиленный»), у остальных — порода.
 function Status.display_name(unit)
 	local boss_extension = ScriptUnit.has_extension(unit, "boss_system")
 	local name = boss_extension and boss_extension.display_name and boss_extension:display_name()
@@ -276,7 +298,25 @@ function Status.display_name(unit)
 		name = breed and breed.display_name
 	end
 
-	return name and Localize(name) or nil
+	if not name then
+		return nil
+	end
+
+	local localized = Localize(name)
+	local state, prefix_key = Status.boss_state(unit)
+	local breed = Status.breed(unit)
+
+	if state and not (breed and breed.ignore_weakened_boss_name) then
+		local ok, prefixed = pcall(Localize, state == "weakened" and "loc_weakened_monster_prefix" or prefix_key, true, {
+			breed = localized,
+		})
+
+		if ok and type(prefixed) == "string" then
+			localized = prefixed
+		end
+	end
+
+	return localized
 end
 
 function Status.health_extension(unit)

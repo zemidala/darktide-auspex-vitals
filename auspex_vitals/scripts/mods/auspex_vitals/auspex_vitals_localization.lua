@@ -150,6 +150,14 @@ return {
 		en = "A thin blue bar above the health of enemies that have toughness: captains (void shield) and the renegade psyker. Empty — the shield is down.",
 		ru = "Тонкая голубая полоска над здоровьем у врагов со стойкостью: капитаны (щит пустоты) и колдун ренегатов. Пустая — щит снят.",
 	},
+	boss_state_color = {
+		en = "Weakened / empowered boss color",
+		ru = "Цвет ослабленных и усиленных боссов",
+	},
+	boss_state_color_description = {
+		en = "Bosses spawned with reduced health (weakened) get a grey-green bar, empowered ones a purple bar. The name gets the same prefix as on the game's boss bar.",
+		ru = "Боссы, появившиеся с уменьшенным здоровьем (ослабленные), получают серо-зелёную полосу, усиленные — фиолетовую. Имя получает ту же приставку, что на полосе босса у игры.",
+	},
 	shrink_with_distance = {
 		en = "Shrink with distance",
 		ru = "Уменьшать с расстоянием",

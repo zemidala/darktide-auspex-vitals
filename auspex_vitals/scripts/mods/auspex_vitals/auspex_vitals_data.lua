@@ -113,6 +113,7 @@ return {
 					{ setting_id = "show_dots", type = "checkbox", default_value = true },
 					{ setting_id = "show_debuffs", type = "checkbox", default_value = true },
 					{ setting_id = "show_toughness", type = "checkbox", default_value = true },
+					{ setting_id = "boss_state_color", type = "checkbox", default_value = true },
 					{ setting_id = "dot_center", type = "checkbox", default_value = false },
 					{
 						setting_id = "show_health_number",
