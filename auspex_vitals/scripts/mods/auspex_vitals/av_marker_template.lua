@@ -703,15 +703,20 @@ local function _layout_dots(widget, marker, count, scale, shape_width, shape_hei
 	local style = widget.style
 	local content = widget.content
 	local gradient = Status.resource_available("texture", ICON_GRADIENT) and ICON_GRADIENT or nil
-	local icon_size = math.floor(ICON_SIZE * scale + 0.5)
-	local font_size = math.max(SMALL_FONT_SIZE * scale, MIN_FONT_SIZE)
+	-- размер значков из настроек: значок, подпись и ширина подписи растут вместе
+	local icon_scale = (mod.cfg and mod.cfg.effect_icon_size or 100) / 100
+	local text_scale = scale * icon_scale
+	local icon_size = math.floor(ICON_SIZE * text_scale + 0.5)
+	local font_size = math.max(SMALL_FONT_SIZE * text_scale, MIN_FONT_SIZE)
+	local text_width = DOT_TEXT_WIDTH * math.max(icon_scale, 1)
+	local text_height = TEXT_BOX_HEIGHT * math.max(icon_scale, 1)
 	local first_in_row = marker.center_dot and 2 or 1
 
 	-- ширина строки, чтобы поставить её по центру
 	local row_width = 0
 
 	for i = first_in_row, count do
-		row_width = row_width + icon_size + (2 + _stacks_width(marker.dots[i])) * scale
+		row_width = row_width + icon_size + (2 + _stacks_width(marker.dots[i])) * text_scale
 	end
 
 	local x = -row_width * 0.5
@@ -728,6 +733,8 @@ local function _layout_dots(widget, marker, count, scale, shape_width, shape_hei
 
 			text_color[2], text_color[3], text_color[4] = color[2], color[3], color[4]
 			text_style.font_size = font_size
+			text_style.size[1] = text_width
+			text_style.size[2] = text_height
 			content["dot_text_" .. i] = entry.label or entry.stacks > 0 and tostring(entry.stacks) or ""
 
 			if i < first_in_row then
@@ -738,15 +745,15 @@ local function _layout_dots(widget, marker, count, scale, shape_width, shape_hei
 
 				-- стаки главного эффекта — слева от фигуры (справа — число здоровья)
 				text_style.text_horizontal_alignment = "right"
-				text_style.offset[1] = -shape_width * 0.5 - 4 * scale - DOT_TEXT_WIDTH
-				text_style.offset[2] = center_y - TEXT_BOX_HEIGHT * 0.5
+				text_style.offset[1] = -shape_width * 0.5 - 4 * scale - text_width
+				text_style.offset[2] = center_y - text_height * 0.5
 			else
 				_layout_dot_icon(widget, i, dot, x, row_y, icon_size, gradient)
 
 				text_style.text_horizontal_alignment = "left"
-				text_style.offset[1] = x + icon_size + 2 * scale
-				text_style.offset[2] = row_y + icon_size * 0.5 - TEXT_BOX_HEIGHT * 0.5
-				x = x + icon_size + (2 + _stacks_width(entry)) * scale
+				text_style.offset[1] = x + icon_size + 2 * text_scale
+				text_style.offset[2] = row_y + icon_size * 0.5 - text_height * 0.5
+				x = x + icon_size + (2 + _stacks_width(entry)) * text_scale
 			end
 		end
 	end
@@ -1043,7 +1050,7 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 	local dot_count = show_dots and marker.dot_count or 0
 	local gap = GAP * scale
 	-- строка эффектов над фигурой; место под неё держим всегда, когда эффекты включены, чтобы имя не прыгало
-	local row_height = show_dots and math.floor(ICON_SIZE * scale + 0.5) or 0
+	local row_height = show_dots and math.floor(ICON_SIZE * scale * (cfg.effect_icon_size or 100) / 100 + 0.5) or 0
 	local row_y = -shape_top - gap - row_height
 
 	_layout_dots(widget, marker, dot_count, scale, shape_width, shape_height, row_y)

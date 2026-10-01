@@ -146,6 +146,14 @@ return {
 		en = "After the damage-over-time icons: brittleness (armor rending), extra damage taken (all / melee / ranged) and easier stagger, in percent. Taken from the enemy's real stats, so any talent or blessing counts.",
 		ru = "После значков периодического урона: хрупкость брони, повышенный получаемый урон (весь / в ближнем бою / от стрельбы) и лёгкость ошеломления — в процентах. Берётся из настоящих характеристик врага, поэтому учитывается любой талант или благословение.",
 	},
+	effect_icon_size = {
+		en = "Effect icon size",
+		ru = "Размер значков эффектов",
+	},
+	effect_icon_size_description = {
+		en = "Damage-over-time and debuff icons above the bar, together with their stacks and percent. 100% = 18 px at close range; shrinks with distance like the bar.",
+		ru = "Значки периодического урона и дебаффов над полосой — вместе с числом стаков и процентами. 100% = 18 пикс. вблизи; с расстоянием уменьшаются вместе с полосой.",
+	},
 	show_toughness = {
 		en = "Void shield",
 		ru = "Щит пустоты",
