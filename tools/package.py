@@ -8,6 +8,8 @@
 """
 
 import re
+import shutil
+import subprocess
 import sys
 import zipfile
 from pathlib import Path
@@ -80,9 +82,31 @@ def check_localization() -> None:
         sys.exit("Локализация:\n  " + "\n  ".join(errors))
 
 
+def find_luajit() -> str | None:
+    found = shutil.which("luajit")
+    if found:
+        return found
+    local = Path.home() / "AppData" / "Local" / "Programs" / "LuaJIT" / "bin" / "luajit.exe"
+    return str(local) if local.is_file() else None
+
+
+def check_syntax() -> None:
+    """Синтаксис Lua тем же LuaJIT, на котором работает игра. Без LuaJIT проверка пропускается."""
+    luajit = find_luajit()
+    if not luajit:
+        print("LuaJIT не найден — синтаксис не проверен (winget install DEVCOM.LuaJIT)")
+        return
+    files = sorted(MOD_DIR.rglob("*.lua")) + sorted(MOD_DIR.rglob("*.mod"))
+    for path in files:
+        result = subprocess.run([luajit, "-bl", str(path)], capture_output=True, text=True)
+        if result.returncode != 0:
+            sys.exit(f"Синтаксис: {path}\n{result.stderr.strip()}")
+
+
 def main() -> None:
     check_files()
     check_localization()
+    check_syntax()
     version = mod_version()
     DIST.mkdir(exist_ok=True)
 
