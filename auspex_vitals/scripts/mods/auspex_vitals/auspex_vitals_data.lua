@@ -62,6 +62,13 @@ return {
 						unit_text = "percent",
 					},
 					{
+						setting_id = "bar_thickness",
+						type = "numeric",
+						default_value = 7,
+						range = { 3, 20 },
+						decimals_number = 0,
+					},
+					{
 						setting_id = "bar_height_offset",
 						type = "numeric",
 						default_value = 0,

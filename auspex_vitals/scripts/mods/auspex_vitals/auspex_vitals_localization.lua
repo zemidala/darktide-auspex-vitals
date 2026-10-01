@@ -94,6 +94,14 @@ return {
 		en = "Base bar width: horde 100, elites and specialists 140, bosses 190 pixels. Base sphere diameter: 22, 30 and 40 pixels.",
 		ru = "Базовая ширина полосы: орда 100, элита и специалисты 140, боссы 190 пикселей. Базовый диаметр сферы: 22, 30 и 40 пикселей.",
 	},
+	bar_thickness = {
+		en = "Bar thickness, px",
+		ru = "Толщина полосы, пикс.",
+	},
+	bar_thickness_description = {
+		en = "Height of the health bar in pixels at close range (default 7). Shrinks with distance together with the width. Does not affect the sphere.",
+		ru = "Высота полосы здоровья в пикселях вблизи (по умолчанию 7). С расстоянием уменьшается вместе с шириной. На сферу не влияет.",
+	},
 	bar_height_offset = {
 		en = "Bar height offset, cm",
 		ru = "Сдвиг полосы по высоте, см",

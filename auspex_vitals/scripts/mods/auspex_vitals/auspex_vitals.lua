@@ -67,6 +67,7 @@ local function _read_settings()
 		},
 		show_dots = mod:get("show_dots") ~= false,
 		bar_width = mod:get("bar_width") or 100,
+		bar_thickness = mod:get("bar_thickness") or 7,
 		bar_style = mod:get("bar_style") or "bar",
 		dot_center = mod:get("dot_center") == true,
 		bar_height_offset = mod:get("bar_height_offset") or 0,

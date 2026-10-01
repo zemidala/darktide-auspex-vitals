@@ -323,7 +323,7 @@ template.on_enter = function (widget, marker, template)
 		marker.shape_width = math.min((WIDTH_BY_CATEGORY[category] or WIDTH_BY_CATEGORY.horde) * width_scale, MAX_WIDTH)
 	end
 
-	marker.shape_height = marker.kind == "bar" and BAR_HEIGHT or marker.shape_width
+	marker.shape_height = marker.kind == "bar" and (cfg and cfg.bar_thickness or BAR_HEIGHT) or marker.shape_width
 	-- значок главного эффекта в центре сферы
 	marker.center_dot = marker.kind ~= "bar" and cfg and cfg.dot_center or false
 	marker.dots = {}
