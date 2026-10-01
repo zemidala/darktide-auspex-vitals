@@ -272,6 +272,13 @@ if dmf and dmf:get("developer_mode") then
 	mod:command("av_icons", mod:localize("icon_preview_command"), function ()
 		IconPreview.toggle(Tracker.element())
 	end)
+
+	-- /av_vis — под каждой полосой написать, что её закрывает (стена / враг [зона] / aim), изменения — в лог
+	mod:command("av_vis", mod:localize("visibility_debug_command"), function ()
+		mod.debug_visibility = not mod.debug_visibility
+		Tracker.remove_all()
+		mod:echo("av_vis: %s", mod.debug_visibility and "on" or "off")
+	end)
 end
 
 mod.on_all_mods_loaded = function ()

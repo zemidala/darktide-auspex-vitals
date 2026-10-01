@@ -10,6 +10,7 @@ local Status = mod.av_status
 
 local HudHealthBarLogic = require("scripts/ui/hud/elements/hud_health_bar_logic")
 local UIWidget = require("scripts/managers/ui/ui_widget")
+local _, HitZone = pcall(require, "scripts/utilities/attack/hit_zone")
 
 local MAX_DOTS = 3
 -- иконки периодического урона рисуем материалом иконок баффов игры (как в её панели баффов)
@@ -57,6 +58,12 @@ local OCCLUSION_START = 1 -- луч начинается перед камеро
 local OCCLUSION_MAX_HITS = 16
 local HIT_INDEX_ACTOR = 4 -- формат результата PhysicsWorld.raycast "all", как в hit_scan.lua
 local OCCLUDED_ALPHA = 0.1
+-- перекрытие засчитывается после стольких проверок подряд (снятие — сразу): одиночный ложный луч не мигает
+local OCCLUSION_CONFIRM = 2
+-- враг у прицела (в пределах стольких градусов) не гаснет из-за других врагов
+local AIM_KEEP_COS = math.cos(math.rad(4))
+-- невидимая оболочка вокруг тела врага (для подавления пролетающими пулями) — не перекрытие
+local AFRO_ZONE = "afro"
 local OCCLUSION_SPEED = 6
 local HEAD_NODE = "j_head"
 local HEAD_MARGIN = 0.3 -- метров над костью головы
@@ -339,6 +346,8 @@ template.on_enter = function (widget, marker, template)
 	marker.dot_timer = 0
 	-- разнести проверки маркеров по кадрам
 	marker.occlusion_timer = math.random() * OCCLUSION_INTERVAL
+	marker.pending_blocker = nil
+	marker.pending_count = 0
 	marker.occlusion = 0
 	marker.visibility = cfg and cfg.line_of_sight and 0 or 1
 
@@ -664,6 +673,7 @@ end
 
 -- Что закрывает луч от камеры к точке target на теле врага: "wall", "enemy" или nil.
 local function _ray_blocker(physics_world, camera_position, target, marker, cfg)
+	-- возвращает тип помехи и (в отладке /av_vis) строку с подробностями
 	local to_target = target - camera_position
 	local direction = Vector3.normalize(to_target)
 	local distance = Vector3.length(to_target) - OCCLUSION_MARGIN - OCCLUSION_START
@@ -675,8 +685,12 @@ local function _ray_blocker(physics_world, camera_position, target, marker, cfg)
 	local from = camera_position + direction * OCCLUSION_START
 
 	-- стены: только статика, снаряжение врагов (динамика) сюда не попадает
-	if cfg.line_of_sight and PhysicsWorld.raycast(physics_world, from, direction, distance, "any", "types", "statics", "collision_filter", WALL_FILTER) then
-		return "wall"
+	if cfg.line_of_sight then
+		local hit, hit_position = PhysicsWorld.raycast(physics_world, from, direction, distance, "closest", "types", "statics", "collision_filter", WALL_FILTER)
+
+		if hit then
+			return "wall", mod.debug_visibility and string.format("wall %.1f/%.1f m", Vector3.distance(camera_position, hit_position), distance + OCCLUSION_START) or nil
+		end
 	end
 
 	if not cfg.hide_behind_enemies then
@@ -695,12 +709,16 @@ local function _ray_blocker(physics_world, camera_position, target, marker, cfg)
 		local actor = hit and hit[HIT_INDEX_ACTOR]
 		local hit_unit = actor and Actor.unit(actor)
 
-		-- закрыть может только другой ЖИВОЙ враг (трупы и снаряжение не считаются)
+		-- закрыть может только тело другого ЖИВОГО врага: трупы, снаряжение и невидимая оболочка afro не считаются
 		if hit_unit and hit_unit ~= marker.unit and HEALTH_ALIVE[hit_unit] then
 			local breed = Status.breed(hit_unit)
 
 			if breed and breed.breed_type == "minion" then
-				return "enemy"
+				local zone = HitZone and HitZone.get_name and HitZone.get_name(hit_unit, actor)
+
+				if zone ~= AFRO_ZONE then
+					return "enemy", mod.debug_visibility and string.format("%s [%s] %.1f m", breed.name, tostring(zone), hit[2] or 0) or nil
+				end
 			end
 		end
 	end
@@ -721,25 +739,38 @@ local function _blocker(parent, marker, cfg)
 
 	local camera_position = Camera.local_position(camera)
 	local head = Unit.world_position(unit, marker.head_node or 1)
-	local head_blocker = _ray_blocker(physics_world, camera_position, head, marker, cfg)
+	local head_blocker, head_detail = _ray_blocker(physics_world, camera_position, head, marker, cfg)
 
 	if not head_blocker then
 		return nil
 	end
 
+	local blocker, detail = head_blocker, head_detail
 	local spine_node = marker.spine_node
 
-	if not spine_node then
-		return head_blocker
+	if spine_node then
+		local spine_blocker, spine_detail = _ray_blocker(physics_world, camera_position, Unit.world_position(unit, spine_node), marker, cfg)
+
+		if not spine_blocker then
+			return nil
+		end
+
+		if spine_blocker == "wall" and head_blocker ~= "wall" then
+			blocker, detail = spine_blocker, spine_detail
+		end
 	end
 
-	local spine_blocker = _ray_blocker(physics_world, camera_position, Unit.world_position(unit, spine_node), marker, cfg)
+	-- врага, в которого целишься, другие враги не гасят (стены — гасят)
+	if blocker == "enemy" then
+		local to_head = head - camera_position
+		local length = Vector3.length(to_head)
 
-	if not spine_blocker then
-		return nil
+		if length > 0 and Vector3.dot(Quaternion.forward(Camera.local_rotation(camera)), to_head) / length >= AIM_KEEP_COS then
+			return nil, mod.debug_visibility and "aim: " .. tostring(detail) or nil
+		end
 	end
 
-	return (head_blocker == "wall" or spine_blocker == "wall") and "wall" or "enemy"
+	return blocker, detail
 end
 
 -- Прозрачность маркера по видимости: за стеной — плавно в ноль, за другим врагом — до OCCLUDED_ALPHA.
@@ -752,7 +783,32 @@ local function _visibility_alpha(parent, marker, cfg, dt)
 
 	if marker.occlusion_timer <= 0 then
 		marker.occlusion_timer = OCCLUSION_INTERVAL
-		marker.blocker = _blocker(parent, marker, cfg)
+
+		local result, detail = _blocker(parent, marker, cfg)
+
+		-- новая помеха — только после OCCLUSION_CONFIRM одинаковых проверок подряд; чистый луч — сразу
+		if result and result == marker.pending_blocker then
+			marker.pending_count = marker.pending_count + 1
+		else
+			marker.pending_blocker = result
+			marker.pending_count = 1
+		end
+
+		if not result or marker.pending_count >= OCCLUSION_CONFIRM then
+			marker.blocker = result
+		end
+
+		if mod.debug_visibility then
+			local text = string.format("%s%s", tostring(marker.blocker or "-"), detail and (" | " .. detail) or "")
+
+			if text ~= marker.debug_text then
+				local own = Status.breed(marker.unit)
+
+				mod:info("vis %s: %s", own and own.name or "?", text)
+			end
+
+			marker.debug_text = text
+		end
 	end
 
 	local blocker = marker.blocker
@@ -896,6 +952,13 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 	end
 
 	widget.alpha_multiplier = _visibility_alpha(parent, marker, cfg, dt)
+
+	-- /av_vis: что закрывает полосу — вместо имени, и полоса не гаснет, чтобы надпись было видно
+	if mod.debug_visibility then
+		content.name_text = marker.debug_text or ""
+		name_style.text_color[1] = 255
+		widget.alpha_multiplier = math.max(widget.alpha_multiplier, 0.6)
+	end
 end
 
 return template

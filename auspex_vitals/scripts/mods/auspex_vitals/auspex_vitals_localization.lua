@@ -356,6 +356,10 @@ return {
 		en = "Show or hide the effect icon preview",
 		ru = "Показать или скрыть просмотр значков эффектов",
 	},
+	visibility_debug_command = {
+		en = "Debug: show what hides each bar",
+		ru = "Отладка: показать, что закрывает каждую полосу",
+	},
 	icon_preview_no_hud = {
 		en = "Icon preview works only in a mission or the Psykhanium.",
 		ru = "Просмотр значков работает только на миссии или в Психаниуме.",
