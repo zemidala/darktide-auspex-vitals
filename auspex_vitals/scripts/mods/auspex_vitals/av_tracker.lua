@@ -16,6 +16,11 @@ local AIM_HEIGHT = 1
 
 local Tracker = {}
 
+-- режим "recent": когда враг последний раз терял здоровье (по своим часам планировщика)
+local _clock = 0
+local _last_health = {} -- unit -> доля здоровья на прошлой проверке
+local _last_hit = {} -- unit -> _clock последнего урона
+
 local _element = nil
 local _markers = {} -- unit -> marker id
 local _timer = 0
@@ -69,6 +74,8 @@ function Tracker.detach(element)
 	if _element == element then
 		_element = nil
 		table.clear(_markers)
+		table.clear(_last_health)
+		table.clear(_last_hit)
 	end
 end
 
@@ -92,6 +99,31 @@ local function _enemy_minions(player_unit)
 	local side = side_system and side_system.side_by_unit and side_system.side_by_unit[player_unit]
 
 	return side and side.alive_units_by_tag and side:alive_units_by_tag("enemy", "minion")
+end
+
+-- Недавно раненый: терял здоровье за последние recent_seconds или горит/кровоточит сейчас.
+local function _is_recent(unit, cfg)
+	local fraction = Status.health_fraction(Status.health_extension(unit))
+	local previous = _last_health[unit]
+
+	if previous and fraction < previous - 0.0001 then
+		_last_hit[unit] = _clock
+	end
+
+	_last_health[unit] = fraction
+
+	local last_hit = _last_hit[unit]
+
+	return last_hit and _clock - last_hit <= (cfg.recent_seconds or 10) or Status.has_dot(unit)
+end
+
+local function _forget_dead()
+	for unit in pairs(_last_health) do
+		if not HEALTH_ALIVE[unit] then
+			_last_health[unit] = nil
+			_last_hit[unit] = nil
+		end
+	end
 end
 
 local function _select(element, cfg)
@@ -131,6 +163,8 @@ local function _select(element, cfg)
 
 				if mode == "wounded" then
 					accepted = Status.is_wounded(unit, Status.health_extension(unit))
+				elseif mode == "recent" then
+					accepted = _is_recent(unit, cfg)
 				end
 
 				if accepted then
@@ -193,6 +227,7 @@ function Tracker.update(element, dt)
 	end
 
 	_timer = _timer - dt
+	_clock = _clock + dt
 
 	if _timer > 0 then
 		return
@@ -207,6 +242,7 @@ function Tracker.update(element, dt)
 	end
 
 	_select(element, cfg)
+	_forget_dead()
 end
 
 return Tracker

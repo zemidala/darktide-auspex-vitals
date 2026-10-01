@@ -8,6 +8,7 @@ local function mode_dropdown(setting_id, default_value)
 		options = {
 			{ text = "mode_always", value = "always" },
 			{ text = "mode_wounded", value = "wounded" },
+			{ text = "mode_recent", value = "recent" },
 			{ text = "mode_off", value = "off" },
 		},
 	}
@@ -64,6 +65,13 @@ return {
 					mode_dropdown("mode_elite", "always"),
 					mode_dropdown("mode_special", "always"),
 					mode_dropdown("mode_boss", "always"),
+					{
+						setting_id = "recent_seconds",
+						type = "numeric",
+						default_value = 10,
+						range = { 3, 60 },
+						decimals_number = 0,
+					},
 				},
 			},
 			{

@@ -319,12 +319,8 @@ function Status.collect_dots(unit, out, max_count)
 	return count
 end
 
--- Раненый: потерял здоровье или горит/кровоточит.
-function Status.is_wounded(unit, health_extension)
-	if Status.health_fraction(health_extension) < 1 then
-		return true
-	end
-
+-- Есть ли на враге периодический урон (по ключевым словам эффектов).
+function Status.has_dot(unit)
 	local buff_extension = ScriptUnit.has_extension(unit, "buff_system")
 
 	if buff_extension then
@@ -336,6 +332,11 @@ function Status.is_wounded(unit, health_extension)
 	end
 
 	return false
+end
+
+-- Раненый: потерял здоровье или горит/кровоточит.
+function Status.is_wounded(unit, health_extension)
+	return Status.health_fraction(health_extension) < 1 or Status.has_dot(unit)
 end
 
 return Status

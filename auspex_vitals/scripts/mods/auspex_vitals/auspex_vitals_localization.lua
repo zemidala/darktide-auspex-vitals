@@ -61,6 +61,18 @@ return {
 		en = "Only wounded",
 		ru = "Только раненые",
 	},
+	mode_recent = {
+		en = "Recently damaged",
+		ru = "Недавно раненые",
+	},
+	recent_seconds = {
+		en = "\"Recently damaged\": show for, s",
+		ru = "«Недавно раненые»: показывать, с",
+	},
+	recent_seconds_description = {
+		en = "How long a bar stays after the enemy last lost health. While it burns, bleeds etc., the bar stays anyway.",
+		ru = "Сколько секунд полоса держится после последнего урона по врагу. Пока враг горит, кровоточит и т. п., полоса видна в любом случае.",
+	},
 	mode_off = {
 		en = "Off",
 		ru = "Выкл",
