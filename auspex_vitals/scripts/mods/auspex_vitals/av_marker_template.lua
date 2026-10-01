@@ -69,6 +69,10 @@ local HEAD_NODE = "j_head"
 local HEAD_MARGIN = 0.3 -- метров над костью головы
 local DEFAULT_BASE_HEIGHT = 2
 local NUM_TICKS = 3 -- деления на 25, 50 и 75 %
+-- стойкость (щит пустоты капитанов, колдуна): тонкая голубая полоска над фигурой
+local TOUGHNESS_HEIGHT = 3
+local TOUGHNESS_COLOR = { 255, 110, 190, 255 }
+local TOUGHNESS_BACKGROUND_COLOR = { 160, 20, 25, 45 }
 
 -- Сфера (bar_style = "sphere"): залитый круг игры (материал сканера), здоровье налито снизу вверх, как
 -- жидкость. Уровень — обрезка по UV (проход texture_uv), поэтому край круга гладкий. Контур — круг колеса
@@ -218,6 +222,8 @@ template.create_widget_defintion = function (template, scenegraph_id)
 	local passes = {
 		_text("name_text", MAX_WIDTH * 2, "center", "bottom"),
 		_text("health_text", HEALTH_TEXT_WIDTH, "left", "center"),
+		_rect("toughness_background", table.clone(TOUGHNESS_BACKGROUND_COLOR)),
+		_rect("toughness_bar", table.clone(TOUGHNESS_COLOR)),
 	}
 
 	if kind == "bar" then
@@ -321,6 +327,11 @@ template.on_enter = function (widget, marker, template)
 	local cfg = mod.cfg
 
 	marker.bar_logic = HudHealthBarLogic:new(template.bar_settings)
+
+	-- стойкость есть только у некоторых пород (капитаны, колдун); у остальных расширения нет
+	local toughness_extension = cfg and cfg.show_toughness and ScriptUnit.has_extension(marker.unit, "toughness_system")
+
+	marker.toughness_extension = toughness_extension and toughness_extension.current_toughness_percent and toughness_extension or nil
 
 	local unit = marker.unit
 
@@ -963,6 +974,37 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 		_layout_bar(style, shape_width, math.max(shape_height, 2), health_fraction, ghost_fraction, template.bar_settings.bar_spacing)
 	end
 
+	-- стойкость — полоска над фигурой; всё, что выше (значки, имя), поднимается на её высоту
+	local shape_top = shape_height
+	local toughness_extension = marker.toughness_extension
+	local toughness_style = style.toughness_bar
+	local toughness_background = style.toughness_background
+
+	toughness_style.size[1] = 0
+	toughness_background.size[1] = 0
+
+	if toughness_extension and HEALTH_ALIVE[unit] then
+		-- пересчёт из сетевого объекта: пока юнит жив, он есть, но pcall на случай патча
+		local ok, percent = pcall(toughness_extension.current_toughness_percent, toughness_extension)
+
+		if ok and type(percent) == "number" then
+			local height = math.max(math.floor(TOUGHNESS_HEIGHT * scale + 0.5), 2)
+			local top = -shape_top - GAP * scale - height
+			local left = -shape_width * 0.5
+
+			toughness_background.offset[1] = left
+			toughness_background.offset[2] = top
+			toughness_background.size[1] = shape_width
+			toughness_background.size[2] = height
+			toughness_style.offset[1] = left
+			toughness_style.offset[2] = top
+			toughness_style.offset[3] = 4
+			toughness_style.size[1] = shape_width * math.clamp(percent, 0, 1)
+			toughness_style.size[2] = height
+			shape_top = -top
+		end
+	end
+
 	-- эффекты: периодический урон, затем дебаффы; строка значков есть, если включено хоть что-то
 	local show_dots = cfg and (cfg.show_dots or cfg.show_debuffs)
 
@@ -992,13 +1034,13 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 	local gap = GAP * scale
 	-- строка эффектов над фигурой; место под неё держим всегда, когда эффекты включены, чтобы имя не прыгало
 	local row_height = show_dots and math.floor(ICON_SIZE * scale + 0.5) or 0
-	local row_y = -shape_height - gap - row_height
+	local row_y = -shape_top - gap - row_height
 
 	_layout_dots(widget, marker, dot_count, scale, shape_width, shape_height, row_y)
 
 	-- имя — над строкой эффектов
 	local name_style = style.name_text
-	local name_bottom = (show_dots and row_y or -shape_height) - gap
+	local name_bottom = (show_dots and row_y or -shape_top) - gap
 	local name_scale = (cfg and cfg.name_size or 100) / 100
 	local name_box_height = TEXT_BOX_HEIGHT * math.max(name_scale, 1)
 

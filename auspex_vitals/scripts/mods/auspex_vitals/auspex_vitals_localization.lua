@@ -142,6 +142,14 @@ return {
 		en = "After the damage-over-time icons: brittleness (armor rending), extra damage taken (all / melee / ranged) and easier stagger, in percent. Taken from the enemy's real stats, so any talent or blessing counts.",
 		ru = "После значков периодического урона: хрупкость брони, повышенный получаемый урон (весь / в ближнем бою / от стрельбы) и лёгкость ошеломления — в процентах. Берётся из настоящих характеристик врага, поэтому учитывается любой талант или благословение.",
 	},
+	show_toughness = {
+		en = "Void shield",
+		ru = "Щит пустоты",
+	},
+	show_toughness_description = {
+		en = "A thin blue bar above the health of enemies that have toughness: captains (void shield) and the renegade psyker. Empty — the shield is down.",
+		ru = "Тонкая голубая полоска над здоровьем у врагов со стойкостью: капитаны (щит пустоты) и колдун ренегатов. Пустая — щит снят.",
+	},
 	shrink_with_distance = {
 		en = "Shrink with distance",
 		ru = "Уменьшать с расстоянием",

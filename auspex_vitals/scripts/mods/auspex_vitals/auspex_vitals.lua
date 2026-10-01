@@ -105,6 +105,7 @@ local function _read_settings()
 		recent_seconds = mod:get("recent_seconds") or 10,
 		show_dots = mod:get("show_dots") ~= false,
 		show_debuffs = mod:get("show_debuffs") ~= false,
+		show_toughness = mod:get("show_toughness") ~= false,
 		bar_width = mod:get("bar_width") or 100,
 		bar_thickness = mod:get("bar_thickness") or 7,
 		bar_style = mod:get("bar_style") or "bar",
