@@ -73,6 +73,10 @@ return {
 		en = "How long a bar stays after the enemy last lost health. While it burns, bleeds etc., the bar stays anyway.",
 		ru = "Сколько секунд полоса держится после последнего урона по врагу. Пока враг горит, кровоточит и т. п., полоса видна в любом случае.",
 	},
+	mode_tagged = {
+		en = "Only tagged",
+		ru = "Только помеченные",
+	},
 	mode_off = {
 		en = "Off",
 		ru = "Выкл",

@@ -126,6 +126,14 @@ local function _forget_dead()
 	end
 end
 
+-- Система меток (пинги отряда); nil, если её нет или метод пропал после патча.
+local function _smart_tag_system()
+	local extension_manager = Managers.state and Managers.state.extension
+	local system = extension_manager and extension_manager:has_system("smart_tag_system") and extension_manager:system("smart_tag_system")
+
+	return system and system.is_unit_tagged and system or nil
+end
+
 local function _select(element, cfg)
 	local player = element._parent and element._parent:player()
 	local player_unit = player and player.player_unit
@@ -148,6 +156,7 @@ local function _select(element, cfg)
 	local max_distance_sq = cfg.max_distance * cfg.max_distance
 	local modes = cfg.modes
 	local num_candidates = 0
+	local smart_tags = _smart_tag_system()
 
 	for i = 1, units.size or 0 do
 		local unit = units[i]
@@ -165,6 +174,8 @@ local function _select(element, cfg)
 					accepted = Status.is_wounded(unit, Status.health_extension(unit))
 				elseif mode == "recent" then
 					accepted = _is_recent(unit, cfg)
+				elseif mode == "tagged" then
+					accepted = smart_tags ~= nil and smart_tags:is_unit_tagged(unit) == true
 				end
 
 				if accepted then

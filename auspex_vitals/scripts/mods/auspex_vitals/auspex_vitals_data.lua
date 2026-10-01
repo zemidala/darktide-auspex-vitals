@@ -9,6 +9,7 @@ local function mode_dropdown(setting_id, default_value)
 			{ text = "mode_always", value = "always" },
 			{ text = "mode_wounded", value = "wounded" },
 			{ text = "mode_recent", value = "recent" },
+			{ text = "mode_tagged", value = "tagged" },
 			{ text = "mode_off", value = "off" },
 		},
 	}
