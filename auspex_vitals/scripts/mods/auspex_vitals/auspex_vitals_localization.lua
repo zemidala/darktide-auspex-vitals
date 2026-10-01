@@ -4,8 +4,8 @@ return {
 		ru = "Auspex Vitals",
 	},
 	mod_description = {
-		en = "Enemy health bars and status: damage over time, debuffs, stagger.",
-		ru = "Полосы здоровья и состояние врагов: периодический урон, дебаффы, ошеломление.",
+		en = "Enemy health bars with damage-over-time icons, and your own damage numbers.",
+		ru = "Полосы здоровья врагов со значками периодического урона и цифры вашего урона.",
 	},
 
 	preset = {

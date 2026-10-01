@@ -1,0 +1,103 @@
+[size=5][b]Auspex Vitals[/b][/size]
+[i]Описание на русском — ниже.[/i]
+
+Health bars over enemies with damage-over-time icons, plus your own damage numbers. Built to stay readable in a crowd and light on performance, with presets instead of dozens of checkboxes.
+
+[size=4][b]Features[/b][/size]
+[list]
+[*][b]Health bars[/b] per enemy category: horde, elites, specialists, monstrosities and captains. For each: [i]Always[/i], [i]Only wounded[/i] or [i]Off[/i]. By default the horde shows only when wounded.
+[*][b]Two looks:[/b] a thin bar with 25/50/75 % ticks and a fading "ghost" of recent damage, or a compact [b]sphere[/b] that drains like liquid.
+[*][b]Damage over time[/b] under the bar: burning, warpfire, bleeding, toxin, electrocution — with stack counts.
+[*][b]Health number[/b] (optional): size, color (including green → yellow → red by health), exact or short format (2.3k) with dot or comma.
+[*][b]Damage numbers[/b] for your hits only: white — normal, yellow — weakspot, orange — critical; effect ticks with their icon. Five styles: at the hit point, a column next to the enemy, or a feed next to the crosshair.
+[*][b]Visibility:[/b] bars hide behind walls and fade when a closer enemy covers them; they shrink with distance.
+[*][b]Presets:[/b] Minimal / Standard / Everything — one click, then fine-tune.
+[*]Optional: hide the game's boss bar at the top of the screen and its damage indicator in the Psykhanium.
+[*]English and Russian.
+[/list]
+
+[size=4][b]Performance[/b][/size]
+[list]
+[*]Bars are given only to the nearest enemies (limit in the settings, 20 by default), preferring those near the crosshair. A horde of hundreds does not create hundreds of widgets.
+[*]Status and visibility are refreshed a few times per second, not every frame.
+[*]Max distance and bar limit are adjustable in the [i]Performance[/i] group.
+[/list]
+
+[size=4][b]Works as a client[/b][/size]
+Health and damage-over-time effects are synced by the game to every player, so bars work in public missions too, not only when you host.
+
+[size=4][b]Requirements[/b][/size]
+[list]
+[*][url=https://www.nexusmods.com/warhammer40kdarktide/mods/19]Darktide Mod Loader[/url]
+[*][url=https://www.nexusmods.com/warhammer40kdarktide/mods/8]Darktide Mod Framework[/url]
+[/list]
+
+[size=4][b]Installation[/b][/size]
+[list=1]
+[*][b]Vortex:[/b] "Mod Manager Download", then enable the mod.
+[*][b]Manual:[/b] extract into [i]Warhammer 40,000 DARKTIDE\mods[/i] so that you get [i]mods\auspex_vitals\auspex_vitals.mod[/i], and add [i]auspex_vitals[/i] to [i]mod_load_order.txt[/i] (not needed with AML).
+[/list]
+
+[size=4][b]Compatibility[/b][/size]
+[list]
+[*]Healthbars, Enemies Improved: both draw their own bars, so enemies would get two. The mod warns in chat if one of them is enabled — use one at a time.
+[*]Damage Numbers: its numbers would mix with ours. Turn off one of the two.
+[/list]
+
+[size=4][b]Not yet[/b][/size]
+Stagger, debuffs (brittleness and others), DPS report — planned for later versions.
+
+Written from scratch on the game's own code; no code from other health bar mods is used.
+License: MIT.
+
+[line]
+
+[size=5][b]Auspex Vitals[/b][/size]
+
+Полосы здоровья над врагами со значками периодического урона и цифры вашего урона. Сделан так, чтобы читаться в толпе и не нагружать игру, а настраиваться пресетами вместо десятков галочек.
+
+[size=4][b]Что умеет[/b][/size]
+[list]
+[*][b]Полосы здоровья[/b] по категориям: орда, элита, специалисты, чудовища и капитаны. Для каждой — [i]Всегда[/i], [i]Только раненые[/i] или [i]Выкл[/i]. По умолчанию орда видна, только когда ранена.
+[*][b]Два вида:[/b] тонкая полоса с делениями 25/50/75 % и «призрачным» следом недавнего урона или компактная [b]сфера[/b], из которой здоровье утекает, как жидкость.
+[*][b]Периодический урон[/b] под полосой: горение, варп-огонь, кровотечение, токсин, электрошок — с числом стаков.
+[*][b]Число здоровья[/b] (по желанию): размер, цвет (в том числе зелёный → жёлтый → красный по здоровью), точно или сокращённо (2.3к), с точкой или запятой.
+[*][b]Цифры урона[/b] — только ваши: белые — обычный, жёлтые — слабое место, оранжевые — крит; тики эффектов со значком. Пять стилей: у точки попадания, столбцом у врага или лентой у прицела.
+[*][b]Видимость:[/b] полосы скрываются за стенами и гаснут, когда врага закрывает другой, ближний; с расстоянием уменьшаются.
+[*][b]Пресеты:[/b] Минимум / Стандарт / Всё — одним выбором, дальше тонкая настройка.
+[*]По желанию: скрыть стандартную полосу босса вверху экрана и индикатор урона в Психаниуме.
+[*]Английский и русский.
+[/list]
+
+[size=4][b]Производительность[/b][/size]
+[list]
+[*]Полосы получают только ближайшие враги (лимит в настройках, по умолчанию 20), с приоритетом тех, что у прицела. Орда из сотен врагов не создаёт сотни виджетов.
+[*]Состояние и видимость обновляются несколько раз в секунду, а не каждый кадр.
+[*]Дальность и лимит полос — в группе [i]Производительность[/i].
+[/list]
+
+[size=4][b]Работает и у клиента[/b][/size]
+Здоровье и периодический урон игра передаёт всем игрокам, поэтому полосы работают и в публичных миссиях, а не только у хоста.
+
+[size=4][b]Установка[/b][/size]
+[list=1]
+[*][b]Vortex:[/b] «Mod Manager Download», затем включите мод.
+[*][b]Вручную:[/b] распакуйте архив в [i]Warhammer 40,000 DARKTIDE\mods[/i], чтобы получилось [i]mods\auspex_vitals\auspex_vitals.mod[/i], и впишите [i]auspex_vitals[/i] в [i]mod_load_order.txt[/i] (с AML не нужно).
+[/list]
+
+[size=4][b]Совместимость[/b][/size]
+[list]
+[*]Healthbars, Enemies Improved — рисуют свои полосы, у врагов будет две. Если один из них включён, мод предупредит в чате — оставьте один.
+[*]Damage Numbers — его цифры смешаются с нашими. Выключите что-то одно.
+[/list]
+
+[size=4][b]Пока нет[/b][/size]
+Ошеломление, дебаффы (хрупкость брони и другие), отчёт DPS — в следующих версиях.
+
+Написан с нуля по коду самой игры; код других модов с полосами здоровья не используется.
+Лицензия: MIT.
+
+[line]
+
+[size=4][b]Changelog[/b][/size]
+[b]{{VERSION}}[/b] — first release.
