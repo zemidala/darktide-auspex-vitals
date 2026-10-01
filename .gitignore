@@ -7,3 +7,6 @@ Thumbs.db
 # Release archives
 /dist/
 *.zip
+
+# Raw screenshots (player name, other mods on screen)
+/nexus/screenshots/
