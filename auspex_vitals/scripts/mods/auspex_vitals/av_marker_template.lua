@@ -1070,6 +1070,25 @@ template.update_function = function (parent, ui_renderer, widget, marker, templa
 
 	widget.alpha_multiplier = _visibility_alpha(parent, marker, cfg, dt)
 
+	-- при прицеливании полосы тускнеют, кроме врага у прицела
+	local aim_alpha = mod.aim_alpha or 1
+
+	if aim_alpha < 1 then
+		local camera = parent._player_camera
+		local aimed = false
+
+		if camera and ALIVE[unit] then
+			local to_head = Unit.world_position(unit, marker.head_node or 1) - Camera.local_position(camera)
+			local length = Vector3.length(to_head)
+
+			aimed = length > 0 and Vector3.dot(Quaternion.forward(Camera.local_rotation(camera)), to_head) / length >= AIM_KEEP_COS
+		end
+
+		if not aimed then
+			widget.alpha_multiplier = widget.alpha_multiplier * aim_alpha
+		end
+	end
+
 	-- /av_vis: что закрывает полосу — вместо имени, и полоса не гаснет, чтобы надпись было видно
 	if mod.debug_visibility then
 		content.name_text = marker.debug_text or ""

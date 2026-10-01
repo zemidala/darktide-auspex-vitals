@@ -106,6 +106,7 @@ local function _read_settings()
 		show_dots = mod:get("show_dots") ~= false,
 		show_debuffs = mod:get("show_debuffs") ~= false,
 		show_toughness = mod:get("show_toughness") ~= false,
+		ads_opacity = mod:get("ads_opacity") or 100,
 		bar_width = mod:get("bar_width") or 100,
 		bar_thickness = mod:get("bar_thickness") or 7,
 		bar_style = mod:get("bar_style") or "bar",
@@ -284,6 +285,48 @@ local function _attach(element)
 	return true
 end
 
+-- Прицеливание (альтернативный огонь: ADS, заряд посоха): общий множитель прозрачности полос mod.aim_alpha,
+-- плавно к cfg.ads_opacity. Компонент читаем через pcall: у посредника компонента неизвестное поле роняет игру.
+local AIM_ALPHA_SPEED = 6
+
+mod.aim_alpha = 1
+
+local function _is_aiming(element)
+	local player = element._parent and element._parent:player()
+	local player_unit = player and player.player_unit
+	local unit_data = player_unit and ALIVE[player_unit] and ScriptUnit.has_extension(player_unit, "unit_data_system")
+
+	if not unit_data then
+		return false
+	end
+
+	local ok, active = pcall(function ()
+		return unit_data:read_component("alternate_fire").is_active
+	end)
+
+	return ok and active == true
+end
+
+local function _update_aim_alpha(element, dt)
+	local cfg = mod.cfg
+	local opacity = cfg and cfg.ads_opacity or 100
+	local target = 1
+
+	if opacity < 100 and _is_aiming(element) then
+		target = opacity / 100
+	end
+
+	local alpha = mod.aim_alpha
+
+	if alpha < target then
+		alpha = math.min(alpha + dt * AIM_ALPHA_SPEED, target)
+	else
+		alpha = math.max(alpha - dt * AIM_ALPHA_SPEED, target)
+	end
+
+	mod.aim_alpha = alpha
+end
+
 mod:hook_safe("HudElementWorldMarkers", "init", function (self)
 	_attach(self)
 end)
@@ -295,6 +338,7 @@ mod:hook_safe("HudElementWorldMarkers", "update", function (self, dt, t)
 
 	-- общее время для цифр урона: отчёты об атаках приходят без времени
 	DamageNumbers.now = t
+	_update_aim_alpha(self, dt)
 	Tracker.update(self, dt)
 end)
 

@@ -306,6 +306,14 @@ return {
 		en = "Name in capitals",
 		ru = "Имя заглавными",
 	},
+	ads_opacity = {
+		en = "Opacity while aiming",
+		ru = "Прозрачность при прицеливании",
+	},
+	ads_opacity_description = {
+		en = "Bars fade to this opacity while you aim down sights (or charge a staff), so they don't cover targets. The enemy at your crosshair keeps a full bar. 100% — no change.",
+		ru = "Пока вы целитесь (или заряжаете посох), полосы тускнеют до этой непрозрачности, чтобы не закрывать цели. Враг у прицела остаётся с яркой полосой. 100% — без изменений.",
+	},
 	line_of_sight = {
 		en = "Hide behind walls",
 		ru = "Скрывать за стенами",
