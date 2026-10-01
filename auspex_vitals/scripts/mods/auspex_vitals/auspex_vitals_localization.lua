@@ -155,8 +155,8 @@ return {
 		ru = "Вид числа здоровья",
 	},
 	health_number_format_description = {
-		en = "Short: from 1000 health it is rounded to thousands, 2345 -> 2.3k, 12345 -> 12k.",
-		ru = "Сокращённо: от 1000 здоровья округляется до тысяч, 2345 -> 2.3к, 12345 -> 12к.",
+		en = "Short: from 1000 health it is shown in thousands with one decimal: 2345 -> 2.3k, 3000 -> 3.0k, 24700 -> 24.7k. Below 1000 the number stays exact.",
+		ru = "Сокращённо: от 1000 здоровья — в тысячах с одним знаком: 2345 -> 2.3к, 3000 -> 3.0к, 24700 -> 24.7к. Меньше 1000 — точное число.",
 	},
 	health_number_format_exact = {
 		en = "Exact (2345)",
@@ -171,8 +171,8 @@ return {
 		ru = "Десятичный разделитель",
 	},
 	health_number_separator_description = {
-		en = "For the short format: 2.3k or 2,3k.",
-		ru = "Для сокращённого вида: 2.3к или 2,3к.",
+		en = "For the short format: 2.3k or 2,3k. Visible on enemies with 1000+ health.",
+		ru = "Для сокращённого вида: 2.3к или 2,3к. Виден у врагов с 1000+ здоровья.",
 	},
 	separator_dot = {
 		en = "Dot (2.3)",

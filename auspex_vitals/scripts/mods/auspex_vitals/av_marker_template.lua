@@ -421,7 +421,7 @@ local function _distance_scale(content, cfg)
 	return 1 - t * (1 - SCALE_FAR_MIN)
 end
 
--- Текст числа здоровья: точно или сокращённо до тысяч (2.3k до 10 тысяч, дальше 12k).
+-- Текст числа здоровья: точно или сокращённо до тысяч с одним знаком (2.3k, 3.0k, 24.7k), от 100 тысяч — целые (123k).
 local function _format_health(health, cfg)
 	local value = math.ceil(health)
 
@@ -432,7 +432,7 @@ local function _format_health(health, cfg)
 	local suffix = cfg.thousands_suffix or "k"
 	local tenths = math.floor(value / 100 + 0.5)
 
-	if tenths >= 100 or tenths % 10 == 0 then
+	if tenths >= 1000 then
 		return string.format("%d%s", math.floor(tenths / 10 + 0.5), suffix)
 	end
 
