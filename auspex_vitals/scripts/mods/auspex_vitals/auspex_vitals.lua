@@ -7,6 +7,40 @@ local mod = get_mod("auspex_vitals")
 local SCRIPTS = "auspex_vitals/scripts/mods/auspex_vitals/"
 
 -- порядок важен: шаблон и планировщик берут модули из mod.*
+-- Пакеты игры с нашими материалами: сфера (scanner_display_view) и плоские значки эффектов
+-- (presets/*, inventory_background_view). Сами по себе они в миссии не загружены — раньше их подгружал
+-- чужой мод (Alfs_DMF_Extensions), и при Ctrl+Shift+R он выгружал пакет из-под HUD: падение
+-- "Trying to unload resource ... used elsewhere" (2026-10-01).
+-- Держим свою ссылку и НЕ отпускаем её: выгрузка, пока HUD рисует материал, роняет игру. Номера загрузок —
+-- в постоянной таблице DMF, она переживает перезагрузку модов, поэтому второй раз не грузим.
+local REQUIRED_PACKAGES = {
+	"packages/ui/views/scanner_display_view/scanner_display_view",
+	"packages/ui/views/inventory_background_view/inventory_background_view",
+}
+
+local function _load_packages()
+	local package_manager = Managers.package
+	local loaded = mod:persistent_table("packages")
+
+	if not package_manager or not package_manager.load then
+		return
+	end
+
+	for _, package_name in ipairs(REQUIRED_PACKAGES) do
+		if not loaded[package_name] then
+			local ok, id = pcall(package_manager.load, package_manager, package_name, mod:get_name(), nil, true)
+
+			if ok then
+				loaded[package_name] = id
+			else
+				mod:warning("package %s not loaded: %s", package_name, tostring(id))
+			end
+		end
+	end
+end
+
+_load_packages()
+
 mod.av_status = mod:io_dofile(SCRIPTS .. "av_status")
 mod.av_marker_template = mod:io_dofile(SCRIPTS .. "av_marker_template")
 mod.av_tracker = mod:io_dofile(SCRIPTS .. "av_tracker")
