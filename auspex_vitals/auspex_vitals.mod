@@ -9,7 +9,7 @@ return {
 		})
 	end,
 	packages = {},
-	version = "0.1.0",
+	version = "0.2.0",
 	-- AML: после DMF
 	load_after = { "dmf" },
 }

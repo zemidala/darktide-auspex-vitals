@@ -1,1 +1,1 @@
-Enemy health bars with damage-over-time icons (burning, bleeding, toxin, warpfire, electrocution) and your own damage numbers. Bar or sphere, presets, light on performance, works as a client. English and Russian.
+Enemy health bars with damage-over-time icons (burning, bleeding, toxin, warpfire, electrocution), debuffs in percent (brittleness, damage taken, stagger) and your own damage numbers. Bar or sphere, presets, light on performance, works as a client. English and Russian.

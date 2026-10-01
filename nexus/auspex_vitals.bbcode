@@ -5,12 +5,16 @@ Health bars over enemies with damage-over-time icons, plus your own damage numbe
 
 [size=4][b]Features[/b][/size]
 [list]
-[*][b]Health bars[/b] per enemy category: horde, elites, specialists, monstrosities and captains. For each: [i]Always[/i], [i]Only wounded[/i] or [i]Off[/i]. By default the horde shows only when wounded.
+[*][b]Health bars[/b] per enemy category: horde, elites, specialists, monstrosities and captains. For each: [i]Always[/i], [i]Only wounded[/i], [i]Recently damaged[/i] (for N seconds after the last hit), [i]Only tagged[/i] or [i]Off[/i]. By default the horde shows only when wounded.
 [*][b]Two looks:[/b] a thin bar with 25/50/75 % ticks and a fading "ghost" of recent damage, or a compact [b]sphere[/b] that drains like liquid.
 [*][b]Damage over time[/b] above the bar: burning, warpfire, bleeding, toxin, electrocution — with stack counts.
+[*][b]Debuffs[/b] in percent, next to them: brittleness, extra damage taken (all / melee / ranged), easier stagger. Read from the enemy's real stats, so any talent or blessing counts — including future ones. Icon size is adjustable; short text labels are optional.
+[*][b]Void shield[/b] of captains: a thin blue bar above the health.
+[*][b]Weakened / empowered bosses[/b] get their own bar color and the same name prefix as on the game's boss bar.
+[*][b]Enemy name[/b] (optional): for all enemies, elites and up, or bosses only; size, color, capitals.
 [*][b]Health number[/b] (optional): size, color (including green → yellow → red by health), exact or short format (2.3k) with dot or comma.
 [*][b]Damage numbers[/b] for your hits only: white — normal, yellow — weakspot, orange — critical; effect ticks with their icon. Five styles: at the hit point, a column next to the enemy, or a feed next to the crosshair.
-[*][b]Visibility:[/b] bars hide behind walls and fade when a closer enemy covers them; they shrink with distance.
+[*][b]Visibility:[/b] bars hide behind walls and fade when a closer enemy covers them; they shrink with distance. The enemy at your crosshair always keeps a full bar. Optional: fade all other bars while aiming down sights.
 [*][b]Presets:[/b] Minimal / Standard / Everything — one click, then fine-tune.
 [*]Optional: hide the game's boss bar at the top of the screen and its damage indicator in the Psykhanium.
 [*]English and Russian.
@@ -45,7 +49,7 @@ Health and damage-over-time effects are synced by the game to every player, so b
 [/list]
 
 [size=4][b]Not yet[/b][/size]
-Stagger, debuffs (brittleness and others), DPS report — planned for later versions.
+Stagger, attack wind-up indicator, DPS report — planned for later versions.
 
 Written from scratch on the game's own code; no code from other health bar mods is used.
 License: MIT.
@@ -58,12 +62,16 @@ License: MIT.
 
 [size=4][b]Что умеет[/b][/size]
 [list]
-[*][b]Полосы здоровья[/b] по категориям: орда, элита, специалисты, чудовища и капитаны. Для каждой — [i]Всегда[/i], [i]Только раненые[/i] или [i]Выкл[/i]. По умолчанию орда видна, только когда ранена.
+[*][b]Полосы здоровья[/b] по категориям: орда, элита, специалисты, чудовища и капитаны. Для каждой — [i]Всегда[/i], [i]Только раненые[/i], [i]Недавно раненые[/i] (N секунд после последнего урона), [i]Только помеченные[/i] или [i]Выкл[/i]. По умолчанию орда видна, только когда ранена.
 [*][b]Два вида:[/b] тонкая полоса с делениями 25/50/75 % и «призрачным» следом недавнего урона или компактная [b]сфера[/b], из которой здоровье утекает, как жидкость.
 [*][b]Периодический урон[/b] над полосой: горение, варп-огонь, кровотечение, токсин, электрошок — с числом стаков.
+[*][b]Дебаффы[/b] в процентах, рядом с ними: хрупкость брони, повышенный получаемый урон (весь / в ближнем бою / от стрельбы), лёгкость ошеломления. Берутся из настоящих характеристик врага, поэтому учитывается любой талант или благословение — в том числе будущие. Размер значков настраивается; короткие подписи — по желанию.
+[*][b]Щит пустоты[/b] капитанов — тонкая голубая полоска над здоровьем.
+[*][b]Ослабленные и усиленные боссы[/b] — свой цвет полосы и та же приставка к имени, что на полосе босса у игры.
+[*][b]Имя врага[/b] (по желанию): для всех, для элиты и выше или только для боссов; размер, цвет, заглавные.
 [*][b]Число здоровья[/b] (по желанию): размер, цвет (в том числе зелёный → жёлтый → красный по здоровью), точно или сокращённо (2.3к), с точкой или запятой.
 [*][b]Цифры урона[/b] — только ваши: белые — обычный, жёлтые — слабое место, оранжевые — крит; тики эффектов со значком. Пять стилей: у точки попадания, столбцом у врага или лентой у прицела.
-[*][b]Видимость:[/b] полосы скрываются за стенами и гаснут, когда врага закрывает другой, ближний; с расстоянием уменьшаются.
+[*][b]Видимость:[/b] полосы скрываются за стенами и гаснут, когда врага закрывает другой, ближний; с расстоянием уменьшаются. У врага в прицеле полоса всегда яркая. По желанию: приглушать остальные полосы при прицеливании.
 [*][b]Пресеты:[/b] Минимум / Стандарт / Всё — одним выбором, дальше тонкая настройка.
 [*]По желанию: скрыть стандартную полосу босса вверху экрана и индикатор урона в Психаниуме.
 [*]Английский и русский.
@@ -92,7 +100,7 @@ License: MIT.
 [/list]
 
 [size=4][b]Пока нет[/b][/size]
-Ошеломление, дебаффы (хрупкость брони и другие), отчёт DPS — в следующих версиях.
+Ошеломление, индикатор замаха, отчёт DPS — в следующих версиях.
 
 Написан с нуля по коду самой игры; код других модов с полосами здоровья не используется.
 Лицензия: MIT.
