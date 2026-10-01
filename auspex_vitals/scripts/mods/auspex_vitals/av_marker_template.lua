@@ -887,7 +887,7 @@ local function _visibility_alpha(parent, marker, cfg, dt)
 		end
 
 		if mod.debug_visibility then
-			local text = string.format("%s%s", tostring(marker.blocker or "-"), detail and (" | " .. detail) or "")
+			local text = string.format("vis: %s%s", tostring(marker.blocker or "ok"), detail and (" | " .. detail) or "")
 
 			if text ~= marker.debug_text then
 				local own = Status.breed(marker.unit)
