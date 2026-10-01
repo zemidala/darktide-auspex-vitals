@@ -34,8 +34,8 @@ return {
 	},
 
 	group_categories = {
-		en = "Enemy categories",
-		ru = "Категории врагов",
+		en = "Who gets a bar",
+		ru = "Кому показывать полосу",
 	},
 	mode_horde = {
 		en = "Horde",
@@ -82,9 +82,25 @@ return {
 		ru = "Выкл",
 	},
 
-	group_display = {
-		en = "Display",
-		ru = "Отображение",
+	group_shape = {
+		en = "Bar or sphere",
+		ru = "Полоса или сфера",
+	},
+	group_effects = {
+		en = "Effect icons",
+		ru = "Значки эффектов",
+	},
+	group_text = {
+		en = "Health number and name",
+		ru = "Число здоровья и имя",
+	},
+	group_visibility = {
+		en = "When to hide bars",
+		ru = "Когда прятать полосу",
+	},
+	group_limits = {
+		en = "Range and bar limit",
+		ru = "Дальность и число полос",
 	},
 	bar_style = {
 		en = "Health display",
@@ -452,16 +468,12 @@ return {
 		ru = "Насколько далеко от центра врага (столбец) или от прицела (лента) стоят цифры. Увеличьте, если модель врага закрывает цифры.",
 	},
 	damage_numbers_dots = {
-		en = "Damage over time",
-		ru = "Периодический урон",
+		en = "Damage-over-time ticks",
+		ru = "Тики периодического урона",
 	},
 	damage_numbers_dots_description = {
 		en = "Burning, bleeding and other effect ticks, summed per enemy within a second.",
 		ru = "Тики горения, кровотечения и других эффектов, сложенные по врагу за секунду.",
-	},
-	group_performance = {
-		en = "Performance",
-		ru = "Производительность",
 	},
 	max_distance = {
 		en = "Max distance, m",
